@@ -40,7 +40,7 @@ export const appConfig: ApplicationConfig = {
                     dateInput: 'D',
                 },
                 display: {
-                    dateInput: 'DDD aa',
+                    dateInput: 'DDD',
                     monthYearLabel: 'LLL yyyy',
                     dateA11yLabel: 'DD',
                     monthYearA11yLabel: 'LLLL yyyy',
