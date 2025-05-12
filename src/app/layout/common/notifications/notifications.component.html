@@ -31,12 +31,12 @@
                     ></mat-icon>
                 </button>
             </div>
-            <div class="text-lg font-medium leading-10">Notifications</div>
+            <div class="text-lg font-medium leading-10">Notificações</div>
             <div class="ml-auto">
                 <button
                     class="dark:text-white"
                     mat-icon-button
-                    [matTooltip]="'Mark all as read'"
+                    [matTooltip]="'Marcar todas como lidas'"
                     [disabled]="unreadCount === 0"
                     (click)="markAllAsRead()"
                 >
@@ -105,8 +105,8 @@
                             (click)="toggleRead(notification)"
                             [matTooltip]="
                                 notification.read
-                                    ? 'Mark as unread'
-                                    : 'Mark as read'
+                                    ? 'Marcar como não lida'
+                                    : 'Marcar como lida'
                             "
                         >
                             <span
@@ -123,7 +123,7 @@
                             class="h-6 min-h-6 w-6 sm:opacity-0 sm:group-hover:opacity-100"
                             mat-icon-button
                             (click)="delete(notification)"
-                            [matTooltip]="'Remove'"
+                            [matTooltip]="'Remover'"
                         >
                             <mat-icon
                                 class="icon-size-4"
@@ -190,12 +190,12 @@
                         ></mat-icon>
                     </div>
                     <div class="mt-5 text-2xl font-semibold tracking-tight">
-                        No notifications
+                        Nenhuma notificação
                     </div>
                     <div
                         class="text-secondary mt-1 w-full max-w-60 text-center text-md"
                     >
-                        When you have notifications, they will appear here.
+                        Quando você tiver notificações, elas aparecerão aqui.
                     </div>
                 </div>
             }
