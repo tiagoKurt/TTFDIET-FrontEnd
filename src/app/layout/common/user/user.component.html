@@ -28,10 +28,7 @@
         </span>
     </button>
     <mat-divider class="my-2"></mat-divider>
-    <button mat-menu-item>
-        <mat-icon [svgIcon]="'heroicons_outline:user-circle'"></mat-icon>
-        <span>Perfil</span>
-    </button>
+        <button mat-menu-item (click)="navigateToProfile()">        <mat-icon [svgIcon]="'heroicons_outline:user-circle'"></mat-icon>        <span>Perfil</span>    </button>
     <button mat-menu-item>
         <mat-icon [svgIcon]="'heroicons_outline:cog-8-tooth'"></mat-icon>
         <span>Configurações</span>

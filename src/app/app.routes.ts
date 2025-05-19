@@ -49,7 +49,8 @@ export const appRoutes: Route[] = [
         children: [
             {path: 'sign-out', loadChildren: () => import('app/modules/auth/sign-out/sign-out.routes')},
             {path: 'unlock-session', loadChildren: () => import('app/modules/auth/unlock-session/unlock-session.routes')},
-            {path: 'pre-register', loadChildren: () => import('app/modules/pre-register/pre-register.routes')}
+            {path: 'pre-register', loadChildren: () => import('app/modules/User/pre-register/pre-register.routes')},
+
         ]
     },
 
@@ -76,6 +77,7 @@ export const appRoutes: Route[] = [
         },
         children: [
             {path: 'example', loadChildren: () => import('app/modules/admin/example/example.routes')},
+            {path: 'profile', loadChildren: () => import('app/modules/User/profile/profile.routes')}
         ]
     }
 ];
