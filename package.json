@@ -25,6 +25,7 @@
         "@angular/platform-browser-dynamic": "18.0.1",
         "@angular/router": "18.0.1",
         "@ngneat/transloco": "6.0.4",
+        "@tailwindcss/postcss": "^4.1.7",
         "apexcharts": "3.49.1",
         "crypto-js": "4.2.0",
         "highlight.js": "11.9.0",
@@ -59,11 +60,11 @@
         "karma-jasmine": "5.1.0",
         "karma-jasmine-html-reporter": "2.1.0",
         "lodash": "4.17.21",
-        "postcss": "8.4.38",
+        "postcss": "^8.4.38",
         "prettier": "3.3.0",
         "prettier-plugin-organize-imports": "3.2.4",
         "prettier-plugin-tailwindcss": "0.6.1",
-        "tailwindcss": "^3.4.3",
+        "tailwindcss": "^3.4.17",
         "typescript": "5.4.5"
     }
 }
