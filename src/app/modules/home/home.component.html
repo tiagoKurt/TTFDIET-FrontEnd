@@ -1,0 +1,182 @@
+<div class="flex flex-col flex-auto min-w-0">
+    <!-- Conteúdo principal -->
+    <div class="flex-auto p-6 sm:p-10">
+        <!-- Cabeçalho da página -->
+        <div class="flex flex-wrap items-center justify-between">
+            <div>
+                <div class="text-3xl font-semibold tracking-tight leading-8">Olá, bem-vindo ao TTF DIET</div>
+                <div class="font-medium tracking-tight text-secondary">Acompanhe seu progresso alimentar e planeje suas refeições</div>
+            </div>
+            <div class="flex items-center mt-4 sm:mt-0">
+                <button
+                    mat-flat-button
+                    [color]="'primary'"
+                    (click)="registrarRefeicao()">
+                    <mat-icon class="icon-size-5 mr-2" [svgIcon]="'heroicons_solid:plus'"></mat-icon>
+                    Registrar Refeição
+                </button>
+            </div>
+        </div>
+
+        <!-- Cards principais - Sistema de grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+
+            <!-- Card: Resumo Diário -->
+            <mat-card class="flex flex-col h-full shadow">
+                <div class="px-6 py-4 bg-primary-500 text-white rounded-t-md">
+                    <div class="font-semibold text-lg flex items-center">
+                        <mat-icon class="mr-2" svgIcon="heroicons_solid:chart-pie"></mat-icon>
+                        Resumo Diário
+                    </div>
+                </div>
+                <div class="p-6 flex-auto">
+                    <div class="flex justify-between mb-2">
+                        <span class="text-secondary font-medium">Calorias Consumidas</span>
+                        <span class="font-semibold">{{ caloriasConsumidas }} / {{ caloriasTotais }} kcal</span>
+                    </div>
+                    <mat-progress-bar
+                        [color]="'primary'"
+                        [mode]="'determinate'"
+                        [value]="porcentagemCalorias">
+                    </mat-progress-bar>
+
+                    <div class="mt-6 mb-3 font-medium text-secondary">Distribuição de Macronutrientes</div>
+                    <div class="grid grid-cols-3 gap-3">
+                        <div *ngFor="let macro of macronutrientes" [class]="macro.bg + ' rounded-md p-3 text-center'">
+                            <div [class]="'text-lg font-semibold ' + macro.cor">{{ macro.valor }}%</div>
+                            <div class="text-xs text-secondary">{{ macro.nome }}</div>
+                        </div>
+                    </div>
+                </div>
+            </mat-card>
+
+            <!-- Card: Próxima Refeição -->
+            <mat-card class="flex flex-col h-full shadow">
+                <div class="px-6 py-4 bg-accent-500 text-white rounded-t-md">
+                    <div class="font-semibold text-lg flex items-center">
+                        <mat-icon class="mr-2" svgIcon="heroicons_solid:clock"></mat-icon>
+                        Próxima Refeição
+                    </div>
+                </div>
+                <div class="p-6 flex-auto">
+                    <div class="text-lg font-semibold">{{ proximaRefeicao.nome }} - {{ proximaRefeicao.horario }}</div>
+                    <div class="mt-2 text-secondary">Sugestão baseada no seu plano alimentar:</div>
+
+                    <div class="mt-4 grid grid-cols-1 gap-2">
+                        <div *ngFor="let item of proximaRefeicao.itens" class="flex items-center">
+                            <mat-icon class="icon-size-5 mr-2 text-green-500" svgIcon="heroicons_solid:check-circle"></mat-icon>
+                            <span>{{ item.nome }} <ng-container *ngIf="item.quantidade">({{ item.quantidade }})</ng-container></span>
+                        </div>
+                    </div>
+
+                    <button
+                        mat-stroked-button
+                        color="primary"
+                        class="w-full mt-4">
+                        Ver Cardápio Completo
+                    </button>
+                </div>
+            </mat-card>
+
+            <!-- Card: Progresso do Usuário -->
+            <mat-card class="flex flex-col h-full shadow">
+                <div class="px-6 py-4 bg-indigo-500 text-white rounded-t-md">
+                    <div class="font-semibold text-lg flex items-center">
+                        <mat-icon class="mr-2" svgIcon="heroicons_solid:trophy"></mat-icon>
+                        Seu Progresso
+                    </div>
+                </div>
+                <div class="p-6 flex-auto">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <div class="text-secondary">Peso atual</div>
+                            <div class="text-2xl font-semibold">{{ progresso.pesoAtual }} kg</div>
+                        </div>
+                        <div>
+                            <div class="text-secondary">Meta</div>
+                            <div class="text-2xl font-semibold">{{ progresso.pesoMeta }} kg</div>
+                        </div>
+                        <div>
+                            <div class="text-secondary">Progresso</div>
+                            <div class="text-2xl font-semibold text-green-600">{{ progresso.porcentagemProgresso }}%</div>
+                        </div>
+                    </div>
+
+                    <mat-divider class="my-6"></mat-divider>
+
+                    <div class="font-medium mb-2">Faltam {{ progresso.diferenca }} kg para atingir sua meta</div>
+                    <mat-progress-bar
+                        [color]="'accent'"
+                        [mode]="'determinate'"
+                        [value]="progresso.porcentagemProgresso">
+                    </mat-progress-bar>
+
+                    <button
+                        mat-stroked-button
+                        color="accent"
+                        class="w-full mt-6">
+                        Ver Histórico Completo
+                    </button>
+                </div>
+            </mat-card>
+        </div>
+
+        <!-- Segunda linha de cards -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+
+            <!-- Card: Planejamento Semanal -->
+            <mat-card class="shadow">
+                <div class="px-6 py-4 bg-teal-500 text-white rounded-t-md">
+                    <div class="font-semibold text-lg flex items-center">
+                        <mat-icon class="mr-2" svgIcon="heroicons_solid:calendar"></mat-icon>
+                        Planejamento Semanal
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-7 gap-2 text-center mb-4">
+                        <div *ngFor="let dia of diasSemana" class="font-medium text-sm">{{ dia }}</div>
+                    </div>
+
+                    <div class="grid grid-cols-7 gap-2 text-center">
+                        <div *ngFor="let dia of diasDoMes"
+                            [class]="verificarRefeicaoPlanejada(dia) ? 'p-2 rounded-md bg-green-100' : 'p-2 rounded-md bg-gray-100'">
+                            {{ dia }}
+                        </div>
+                    </div>
+
+                    <div class="flex items-center text-sm mt-3">
+                        <div class="w-3 h-3 rounded-full bg-green-300 mr-1"></div>
+                        <span class="text-secondary">Refeição planejada</span>
+                    </div>
+
+                    <button
+                        mat-flat-button
+                        color="primary"
+                        class="w-full mt-6"
+                        (click)="navegarParaPlanejamentoSemanal()">
+                        Ver Planejamento Detalhado
+                    </button>
+                </div>
+            </mat-card>
+
+            <!-- Card: Recomendações do Dia -->
+            <mat-card class="shadow">
+                <div class="px-6 py-4 bg-purple-500 text-white rounded-t-md">
+                    <div class="font-semibold text-lg flex items-center">
+                        <mat-icon class="mr-2" svgIcon="heroicons_solid:light-bulb"></mat-icon>
+                        Recomendações do Dia
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div *ngFor="let recomendacao of recomendacoes; let last = last" class="flex items-start" [class.mb-4]="!last">
+                        <mat-icon class="icon-size-6 mr-3" [class]="recomendacao.corIcone" [svgIcon]="recomendacao.icone"></mat-icon>
+                        <div>
+                            <div class="font-medium">{{ recomendacao.titulo }}</div>
+                            <div class="text-secondary mt-1">{{ recomendacao.descricao }}</div>
+                        </div>
+                    </div>
+                </div>
+            </mat-card>
+        </div>
+    </div>
+</div>
