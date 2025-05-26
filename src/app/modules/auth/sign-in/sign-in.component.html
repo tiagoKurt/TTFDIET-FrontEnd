@@ -45,11 +45,11 @@
                     <mat-label>Endereço de e-mail</mat-label>
                     <input id="email" matInput [formControlName]="'email'" />
                     @if (signInForm.get('email').hasError('required')) {
-                        <mat-error> Email address is required </mat-error>
+                        <mat-error> Email é obrigatório </mat-error>
                     }
                     @if (signInForm.get('email').hasError('email')) {
                         <mat-error>
-                            Please enter a valid email address
+                            Por favor, insira um endereço de e-mail válido
                         </mat-error>
                     }
                 </mat-form-field>
@@ -58,10 +58,10 @@
                 <mat-form-field class="w-full">
                     <mat-label>Senha</mat-label>
                     <input
-                        id="password"
+                        id="senha"
                         matInput
                         type="password"
-                        [formControlName]="'password'"
+                        [formControlName]="'senha'"
                         #passwordField
                     />
                     <button
@@ -87,7 +87,7 @@
                             ></mat-icon>
                         }
                     </button>
-                    <mat-error> Password is required </mat-error>
+                    <mat-error> Senha é obrigatória </mat-error>
                 </mat-form-field>
 
                 <!-- Actions -->

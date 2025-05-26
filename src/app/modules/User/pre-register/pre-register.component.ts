@@ -2,6 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray, FormControl } from '@angular/forms';
+import { UserService } from 'app/core/user/user.service';
+import { UpdateUserRequest } from 'app/core/user/user.types';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -13,6 +15,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { NotificationService } from 'app/core/services/notification.service';
 
 export enum ObjetivoEnum {
   PERDER_PESO = 'PERDER_PESO',
@@ -114,7 +117,9 @@ export class PreRegisterComponent implements OnInit {
 
   constructor(
     private _formBuilder: FormBuilder,
-    private _router: Router
+    private _router: Router,
+    private _userService: UserService,
+    private _notificationService: NotificationService
   ) {}
 
   ngOnInit(): void {
@@ -327,14 +332,42 @@ export class PreRegisterComponent implements OnInit {
 
   submitForm(): void {
     if (this.preRegisterForm.valid && this.isAlergiasValidas() && this.isComorbidadesValidas()) {
-      console.log('Formulário enviado:', this.preRegisterForm.value);
-      console.log('Alergias selecionadas:', this.alergiasAlimentaresSelecionadas);
-      console.log('Comorbidades selecionadas:', this.comorbidadesSelecionadas);
-      this._router.navigate(['/dashboard']);
+      const formData = this.preRegisterForm.value;
+
+      const updateData: UpdateUserRequest = {
+        altura: formData.altura,
+        peso: formData.peso,
+        idade: formData.idade,
+        sexo: formData.sexo,
+        nivelAtividade: formData.nivelAtividade,
+        objetivoDieta: formData.objetivo,
+        preRegister: true
+      };
+
+      this._userService.update(updateData).subscribe({
+        next: (response) => {
+          // Update user service with the response
+          this._userService.user = response;
+
+          // Show success notification
+          this._notificationService.success('Pré-registro concluído com sucesso!');
+
+          // Redirect to home - the guard should handle the routing correctly
+          this._router.navigate(['/home']);
+        },
+        error: (error) => {
+          // Show error notification
+          const errorMessage = error.error?.message || 'Erro ao concluir pré-registro. Tente novamente.';
+          this._notificationService.error(errorMessage);
+        }
+      });
     } else {
       Object.keys(this.preRegisterForm.controls).forEach(key => {
-        this.preRegisterForm.get(key).markAsTouched();
+        const control = this.preRegisterForm.get(key);
+        control?.markAsTouched();
       });
+
+      this._notificationService.warning('Por favor, preencha todos os campos obrigatórios corretamente.');
     }
   }
 }

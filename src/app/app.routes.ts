@@ -2,6 +2,8 @@ import { Route } from '@angular/router';
 import { initialDataResolver } from 'app/app.resolvers';
 import { AuthGuard } from 'app/core/auth/guards/auth.guard';
 import { NoAuthGuard } from 'app/core/auth/guards/noAuth.guard';
+import { PreRegisterGuard } from 'app/core/guards/pre-register.guard';
+import { CompletedPreRegisterGuard } from 'app/core/guards/completed-pre-register.guard';
 import { LayoutComponent } from 'app/layout/layout.component';
 
 // @formatter:off
@@ -12,7 +14,7 @@ export const appRoutes: Route[] = [
     // Redirect empty path to '/home'
     {path: '', pathMatch : 'full', redirectTo: 'home'},
 
-    {path: 'signed-in-redirect', pathMatch : 'full', redirectTo: 'pre-register'},
+    {path: 'signed-in-redirect', pathMatch : 'full', redirectTo: 'home'},
 
     // Auth routes for guests
     {
@@ -44,7 +46,7 @@ export const appRoutes: Route[] = [
         children: [
             {path: 'sign-out', loadChildren: () => import('app/modules/auth/sign-out/sign-out.routes')},
             {path: 'unlock-session', loadChildren: () => import('app/modules/auth/unlock-session/unlock-session.routes')},
-            {path: 'pre-register', loadChildren: () => import('app/modules/User/pre-register/pre-register.routes')},
+            {path: 'pre-register', canActivate: [PreRegisterGuard], loadChildren: () => import('app/modules/User/pre-register/pre-register.routes')},
 
         ]
     },
@@ -52,8 +54,8 @@ export const appRoutes: Route[] = [
     // Admin routes
     {
         path: '',
-        canActivate: [AuthGuard],
-        canActivateChild: [AuthGuard],
+        canActivate: [AuthGuard, CompletedPreRegisterGuard],
+        canActivateChild: [AuthGuard, CompletedPreRegisterGuard],
         component: LayoutComponent,
         resolve: {
             initialData: initialDataResolver

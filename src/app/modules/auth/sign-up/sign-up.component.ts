@@ -17,6 +17,7 @@ import { Router, RouterLink } from '@angular/router';
 import { fuseAnimations } from '@fuse/animations';
 import { FuseAlertComponent, FuseAlertType } from '@fuse/components/alert';
 import { AuthService } from 'app/core/auth/auth.service';
+import { NotificationService } from 'app/core/services/notification.service';
 
 @Component({
     selector: 'auth-sign-up',
@@ -53,7 +54,8 @@ export class AuthSignUpComponent implements OnInit {
     constructor(
         private _authService: AuthService,
         private _formBuilder: UntypedFormBuilder,
-        private _router: Router
+        private _router: Router,
+        private _notificationService: NotificationService
     ) {}
 
     // -----------------------------------------------------------------------------------------------------
@@ -66,11 +68,10 @@ export class AuthSignUpComponent implements OnInit {
     ngOnInit(): void {
         // Create the form
         this.signUpForm = this._formBuilder.group({
-            name: ['', Validators.required],
+            nome: ['', [Validators.required]],
             email: ['', [Validators.required, Validators.email]],
-            password: ['', Validators.required],
-            company: [''],
-            agreements: ['', Validators.requiredTrue],
+            senha: ['', [Validators.required]],
+            agreements: [false, [Validators.requiredTrue]],
         });
     }
 
@@ -82,8 +83,21 @@ export class AuthSignUpComponent implements OnInit {
      * Sign up
      */
     signUp(): void {
+        // Mark all fields as touched to show validation errors
+        this.signUpForm.markAllAsTouched();
+
+        // Get form values
+        const formValues = this.signUpForm.value;
+
+        // Validate required fields
+        if (!formValues.nome || !formValues.email || !formValues.senha || !formValues.agreements) {
+            this._notificationService.error('Por favor, preencha todos os campos obrigatórios');
+            return;
+        }
+
         // Do nothing if the form is invalid
         if (this.signUpForm.invalid) {
+            this._notificationService.error('Por favor, corrija os erros no formulário');
             return;
         }
 
@@ -93,28 +107,57 @@ export class AuthSignUpComponent implements OnInit {
         // Hide the alert
         this.showAlert = false;
 
+        // Prepare the data for sign up (exclude agreements field)
+        const signUpData = {
+            nome: formValues.nome?.trim(),
+            email: formValues.email?.trim(),
+            senha: formValues.senha
+        };
+
+        // Validate data before sending
+        if (!signUpData.nome || !signUpData.email || !signUpData.senha) {
+            this._notificationService.error('Erro: Dados do formulário estão vazios');
+            this.signUpForm.enable();
+            return;
+        }
+
         // Sign up
-        this._authService.signUp(this.signUpForm.value).subscribe(
-            (response) => {
-                // Navigate to the confirmation required page
-                this._router.navigateByUrl('/confirmation-required');
+        this._authService.signUp(signUpData).subscribe({
+            next: (response) => {
+                // Show success notification
+                this._notificationService.success('Conta criada com sucesso! Redirecionando para login...');
+
+                // Set the alert
+                this.alert = {
+                    type: 'success',
+                    message: 'Conta criada com sucesso! Você pode fazer login agora.',
+                };
+
+                // Show the alert
+                this.showAlert = true;
+
+                // Navigate to sign-in page after a delay
+                setTimeout(() => {
+                    this._router.navigate(['/sign-in']);
+                }, 2000);
             },
-            (response) => {
+            error: (error) => {
                 // Re-enable the form
                 this.signUpForm.enable();
 
-                // Reset the form
-                this.signUpNgForm.resetForm();
+                // Show error notification
+                const errorMessage = error.error?.message || 'Erro ao criar conta. Tente novamente.';
+                this._notificationService.error(errorMessage);
 
                 // Set the alert
                 this.alert = {
                     type: 'error',
-                    message: 'Something went wrong, please try again.',
+                    message: errorMessage,
                 };
 
                 // Show the alert
                 this.showAlert = true;
             }
-        );
+        });
     }
 }

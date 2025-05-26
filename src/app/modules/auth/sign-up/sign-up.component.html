@@ -43,9 +43,9 @@
                 <!-- Name field -->
                 <mat-form-field class="w-full">
                     <mat-label>Nome Completo</mat-label>
-                    <input id="name" matInput [formControlName]="'name'" />
-                    @if (signUpForm.get('name').hasError('required')) {
-                        <mat-error> Full name is required </mat-error>
+                    <input id="nome" matInput [formControlName]="'nome'" />
+                    @if (signUpForm.get('nome').hasError('required')) {
+                        <mat-error> Nome completo é obrigatório </mat-error>
                     }
                 </mat-form-field>
 
@@ -67,10 +67,10 @@
                 <mat-form-field class="w-full">
                     <mat-label>Senha</mat-label>
                     <input
-                        id="password"
+                        id="senha"
                         matInput
                         type="password"
-                        [formControlName]="'password'"
+                        [formControlName]="'senha'"
                         #passwordField
                     />
                     <button
@@ -130,7 +130,7 @@
                     (click)="signUp()"
                 >
                     @if (!signUpForm.disabled) {
-                        <span> Create your free account </span>
+                        <span> Criar conta gratuita </span>
                     }
                     @if (signUpForm.disabled) {
                         <mat-progress-spinner

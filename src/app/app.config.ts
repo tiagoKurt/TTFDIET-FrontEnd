@@ -1,5 +1,5 @@
-import { provideHttpClient } from '@angular/common/http';
-import { APP_INITIALIZER, ApplicationConfig, inject } from '@angular/core';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { APP_INITIALIZER, ApplicationConfig, inject, importProvidersFrom } from '@angular/core';
 import { LuxonDateAdapter } from '@angular/material-luxon-adapter';
 import { DateAdapter, MAT_DATE_FORMATS } from '@angular/material/core';
 import { provideAnimations } from '@angular/platform-browser/animations';
@@ -17,16 +17,21 @@ import { provideIcons } from 'app/core/icons/icons.provider';
 import { mockApiServices } from 'app/mock-api';
 import { firstValueFrom } from 'rxjs';
 import { TranslocoHttpLoader } from './core/transloco/transloco.http-loader';
+import { authInterceptor } from 'app/core/auth/auth.interceptor';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
 
 export const appConfig: ApplicationConfig = {
     providers: [
         provideAnimations(),
-        provideHttpClient(),
+        provideHttpClient(withInterceptors([authInterceptor])),
         provideRouter(
             appRoutes,
             withPreloading(PreloadAllModules),
             withInMemoryScrolling({ scrollPositionRestoration: 'enabled' })
         ),
+
+        // Angular Material SnackBar
+        importProvidersFrom(MatSnackBarModule),
 
         // Material Date Adapter
         {

@@ -17,6 +17,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { fuseAnimations } from '@fuse/animations';
 import { FuseAlertComponent, FuseAlertType } from '@fuse/components/alert';
 import { AuthService } from 'app/core/auth/auth.service';
+import { NotificationService } from 'app/core/services/notification.service';
 
 @Component({
     selector: 'auth-sign-in',
@@ -54,7 +55,8 @@ export class AuthSignInComponent implements OnInit {
         private _activatedRoute: ActivatedRoute,
         private _authService: AuthService,
         private _formBuilder: UntypedFormBuilder,
-        private _router: Router
+        private _router: Router,
+        private _notificationService: NotificationService
     ) {}
 
     // -----------------------------------------------------------------------------------------------------
@@ -67,11 +69,8 @@ export class AuthSignInComponent implements OnInit {
     ngOnInit(): void {
         // Create the form
         this.signInForm = this._formBuilder.group({
-            email: [
-                'hughes.brian@company.com',
-                [Validators.required, Validators.email],
-            ],
-            password: ['admin', Validators.required],
+            email: ['', [Validators.required, Validators.email]],
+            senha: ['', Validators.required],
             rememberMe: [''],
         });
     }
@@ -84,6 +83,9 @@ export class AuthSignInComponent implements OnInit {
      * Sign in
      */
     signIn(): void {
+        // Mark all fields as touched to show validation errors
+        this.signInForm.markAllAsTouched();
+
         // Return if the form is invalid
         if (this.signInForm.invalid) {
             return;
@@ -95,37 +97,52 @@ export class AuthSignInComponent implements OnInit {
         // Hide the alert
         this.showAlert = false;
 
-        // Sign in
-        this._authService.signIn(this.signInForm.value).subscribe(
-            () => {
-                // Set the redirect url.
-                // The '/signed-in-redirect' is a dummy url to catch the request and redirect the user
-                // to the correct page after a successful sign in. This way, that url can be set via
-                // routing file and we don't have to touch here.
-                const redirectURL =
-                    this._activatedRoute.snapshot.queryParamMap.get(
-                        'redirectURL'
-                    ) || '/signed-in-redirect';
+        // Get form values
+        const formValues = this.signInForm.value;
 
-                // Navigate to the redirect url
-                this._router.navigateByUrl(redirectURL);
+        // Prepare login data
+        const loginData = {
+            email: formValues.email?.trim(),
+            senha: formValues.senha
+        };
+
+        // Validate data before sending
+        if (!loginData.email || !loginData.senha) {
+            this._notificationService.error('Por favor, preencha email e senha');
+            this.signInForm.enable();
+            return;
+        }
+
+        // Sign in
+        this._authService.signIn(loginData).subscribe({
+            next: (response) => {
+                // Show success notification
+                this._notificationService.success('Login realizado com sucesso!');
+
+                // Check preRegister status and redirect accordingly
+                if (response.user.preRegister === true) {
+                    this._router.navigate(['/home']);
+                } else {
+                    this._router.navigate(['/pre-register']);
+                }
             },
-            (response) => {
+            error: (error) => {
                 // Re-enable the form
                 this.signInForm.enable();
 
-                // Reset the form
-                this.signInNgForm.resetForm();
+                // Show error notification
+                const errorMessage = error.error?.message || 'Email ou senha incorretos';
+                this._notificationService.error(errorMessage);
 
                 // Set the alert
                 this.alert = {
                     type: 'error',
-                    message: 'Wrong email or password',
+                    message: errorMessage,
                 };
 
                 // Show the alert
                 this.showAlert = true;
             }
-        );
+        });
     }
 }

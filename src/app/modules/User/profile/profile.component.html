@@ -126,8 +126,8 @@
                             <div>
                                 <div class="text-secondary mb-2">Sexo</div>
                                 <mat-radio-group formControlName="sexo" class="flex flex-col gap-2">
-                                    <mat-radio-button value="masculino">Masculino</mat-radio-button>
-                                    <mat-radio-button value="feminino">Feminino</mat-radio-button>
+                                    <mat-radio-button value="MASCULINO">Masculino</mat-radio-button>
+                                    <mat-radio-button value="FEMININO">Feminino</mat-radio-button>
                                 </mat-radio-group>
                                 <mat-error *ngIf="profileForm.get('sexo').touched && profileForm.get('sexo').hasError('required')" class="text-red-500 text-sm mt-1">
                                     Sexo é obrigatório

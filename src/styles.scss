@@ -1,0 +1,44 @@
+/* ----------------------------------------------------------------------------------------------------- */
+/*  @ Import/write your custom styles here.
+/*  @ Styles from this file will override 'vendors.scss' and Fuse's base styles.
+/* ----------------------------------------------------------------------------------------------------- */
+
+/* Custom MatSnackBar styles */
+.success-snackbar {
+    background-color: #4caf50 !important;
+    color: white !important;
+}
+
+.error-snackbar {
+    background-color: #f44336 !important;
+    color: white !important;
+}
+
+.warning-snackbar {
+    background-color: #ff9800 !important;
+    color: white !important;
+}
+
+.info-snackbar {
+    background-color: #2196f3 !important;
+    color: white !important;
+}
+
+/* Position snackbar at bottom right */
+.mat-mdc-snack-bar-container {
+    position: fixed !important;
+    bottom: 20px !important;
+    right: 20px !important;
+    left: auto !important;
+    max-width: 400px !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    .mat-mdc-snack-bar-container {
+        bottom: 10px !important;
+        right: 10px !important;
+        left: 10px !important;
+        max-width: none !important;
+    }
+}

@@ -131,9 +131,8 @@ export class AuthUtils {
      * Decode token
      *
      * @param token
-     * @private
      */
-    private static _decodeToken(token: string): any {
+    static decodeToken(token: string): any {
         // Return if there is no token
         if (!token) {
             return null;
@@ -166,7 +165,7 @@ export class AuthUtils {
      */
     private static _getTokenExpirationDate(token: string): Date | null {
         // Get the decoded token
-        const decodedToken = this._decodeToken(token);
+        const decodedToken = this.decodeToken(token);
 
         // Return if the decodedToken doesn't have an 'exp' field
         if (!decodedToken.hasOwnProperty('exp')) {

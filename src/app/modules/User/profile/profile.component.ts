@@ -3,6 +3,9 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray, FormControl } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';import { MatFormFieldModule } from '@angular/material/form-field';import { MatInputModule } from '@angular/material/input';import { MatSelectModule } from '@angular/material/select';import { MatRadioModule } from '@angular/material/radio';import { MatChipsModule } from '@angular/material/chips';import { MatCheckboxModule } from '@angular/material/checkbox';import { MatIconModule } from '@angular/material/icon';import { MatDividerModule } from '@angular/material/divider';import { MatTabsModule } from '@angular/material/tabs';import { MatCardModule } from '@angular/material/card';import { MatTooltipModule } from '@angular/material/tooltip';
 import { fuseAnimations } from '@fuse/animations';
+import { UserService } from 'app/core/user/user.service';
+import { User, UpdateUserRequest } from 'app/core/user/user.types';
+import { NotificationService } from 'app/core/services/notification.service';
 
 export enum ObjetivoEnum {
   PERDER_PESO = 'PERDER_PESO',
@@ -55,22 +58,10 @@ export interface AlergiaAlimentar {
 export class ProfileComponent implements OnInit {
   profileForm: FormGroup;
   editMode = false;
+  currentUser: User;
 
   objetivos = Object.values(ObjetivoEnum);
   niveisAtividade = Object.values(NivelAtividadeEnum);
-
-  userData = {
-    nome: 'Hughes Brian',
-    email: 'hughes.brian@company.com',
-    altura: 175,
-    peso: 70.5,
-    idade: 35,
-    sexo: 'masculino',
-    nivelAtividade: 'MODERADO',
-    objetivo: 'MANTER_PESO',
-    semAlergias: false,
-    semComorbidades: false
-  };
 
   alergiasAlimentares: AlergiaAlimentar[] = [
     { id: 'leite', nome: 'Leite e derivados' },
@@ -119,11 +110,20 @@ export class ProfileComponent implements OnInit {
     { id: 'intolerancia_lactose', nome: 'Intolerância à Lactose', descricao: 'Restrição de produtos com lactose ou uso de alternativas sem lactose.' }
   ];
 
-  constructor(private _formBuilder: FormBuilder) {}
+  constructor(
+    private _formBuilder: FormBuilder,
+    private _userService: UserService,
+    private _notificationService: NotificationService
+  ) {}
 
   ngOnInit(): void {
+    // Initialize form first
     this.initForm();
-    this.fillFormWithUserData();
+
+    // Load user data
+    this.loadUserData();
+
+    // Start in view mode (disabled form)
     this.disableForm();
   }
 
@@ -173,31 +173,65 @@ export class ProfileComponent implements OnInit {
     });
   }
 
-  fillFormWithUserData(): void {
-    this.profileForm.patchValue({
-      nome: this.userData.nome,
-      email: this.userData.email,
-      altura: this.userData.altura,
-      peso: this.userData.peso,
-      idade: this.userData.idade,
-      sexo: this.userData.sexo,
-      nivelAtividade: this.userData.nivelAtividade,
-      objetivo: this.userData.objetivo,
-      semAlergias: this.userData.semAlergias,
-      semComorbidades: this.userData.semComorbidades
+  loadUserData(): void {
+    // Subscribe to user changes from UserService
+    this._userService.user$.subscribe(user => {
+      if (user) {
+        this.currentUser = user;
+        this.fillFormWithUserData();
+      }
     });
 
-    if (!this.userData.semAlergias) {
-      this.alergiasAlimentaresSelecionadas.forEach(alergia => {
-        this.alergiasFormArray.push(new FormControl(alergia.id));
-      });
+    // Always fetch fresh data from API to ensure we have the latest information
+    this._userService.getProfile().subscribe({
+      next: (user) => {
+        this.currentUser = user;
+        this.fillFormWithUserData();
+      },
+      error: (error) => {
+        this._notificationService.error('Erro ao carregar dados do perfil');
+      }
+    });
+  }
+
+  fillFormWithUserData(): void {
+    if (!this.currentUser) {
+      return;
     }
 
-    if (!this.userData.semComorbidades) {
-      this.comorbidadesSelecionadas.forEach(comorbidade => {
-        this.comorbidadesFormArray.push(new FormControl(comorbidade.id));
-      });
+    // Update form with current user data
+    const formData = {
+      nome: this.currentUser.nome || '',
+      email: this.currentUser.email || '',
+      altura: this.currentUser.altura || '',
+      peso: this.currentUser.peso || '',
+      idade: this.currentUser.idade || '',
+      sexo: this.currentUser.sexo || '',
+      nivelAtividade: this.currentUser.nivelAtividade || '',
+      objetivo: this.currentUser.objetivoDieta || '',
+      semAlergias: false, // TODO: Implementar quando tiver no backend
+      semComorbidades: false // TODO: Implementar quando tiver no backend
+    };
+
+    this.profileForm.patchValue(formData);
+
+    // Re-enable form if we were in edit mode
+    if (this.editMode) {
+      this.enableForm();
     }
+
+    // TODO: Implementar alergias e comorbidades quando estiverem no backend
+    // if (!this.currentUser.semAlergias) {
+    //   this.alergiasAlimentaresSelecionadas.forEach(alergia => {
+    //     this.alergiasFormArray.push(new FormControl(alergia.id));
+    //   });
+    // }
+
+    // if (!this.currentUser.semComorbidades) {
+    //   this.comorbidadesSelecionadas.forEach(comorbidade => {
+    //     this.comorbidadesFormArray.push(new FormControl(comorbidade.id));
+    //   });
+    // }
   }
 
   get alergiasFormArray(): FormArray {
@@ -301,33 +335,57 @@ export class ProfileComponent implements OnInit {
 
   submitForm(): void {
     if (this.profileForm.valid) {
-      console.log('Perfil atualizado:', this.profileForm.value);
-      console.log('Alergias selecionadas:', this.alergiasAlimentaresSelecionadas);
-      console.log('Comorbidades selecionadas:', this.comorbidadesSelecionadas);
+      const formData = this.profileForm.value;
 
-      this.userData = {
-        ...this.userData,
-        nome: this.profileForm.get('nome').value,
-        altura: this.profileForm.get('altura').value,
-        peso: this.profileForm.get('peso').value,
-        idade: this.profileForm.get('idade').value,
-        sexo: this.profileForm.get('sexo').value,
-        nivelAtividade: this.profileForm.get('nivelAtividade').value,
-        objetivo: this.profileForm.get('objetivo').value,
-        semAlergias: this.profileForm.get('semAlergias').value,
-        semComorbidades: this.profileForm.get('semComorbidades').value
+      const updateData: UpdateUserRequest = {
+        nome: formData.nome,
+        altura: formData.altura,
+        peso: formData.peso,
+        idade: formData.idade,
+        sexo: formData.sexo,
+        nivelAtividade: formData.nivelAtividade,
+        objetivoDieta: formData.objetivo,
+        preRegister: true // Manter como true já que o usuário já completou
       };
 
-      this.toggleEditMode();
+      this._userService.update(updateData).subscribe({
+        next: (response) => {
+          // Update current user data
+          this.currentUser = response;
+
+          // Update user service with the response
+          this._userService.user = response;
+
+          // Refill form with updated data
+          this.fillFormWithUserData();
+
+          // Show success message
+          this._notificationService.success('Perfil atualizado com sucesso!');
+
+          // Exit edit mode
+          this.toggleEditMode();
+        },
+        error: (error) => {
+          // Show error message
+          const errorMessage = error.error?.message || 'Erro ao atualizar perfil. Tente novamente.';
+          this._notificationService.error(errorMessage);
+        }
+      });
     } else {
       Object.keys(this.profileForm.controls).forEach(key => {
-        this.profileForm.get(key).markAsTouched();
+        const control = this.profileForm.get(key);
+        control?.markAsTouched();
       });
+
+      this._notificationService.warning('Por favor, corrija os erros no formulário');
     }
   }
 
   cancelEdit(): void {
+    // Reset form to original user data
     this.fillFormWithUserData();
+
+    // Exit edit mode
     this.toggleEditMode();
   }
 }
