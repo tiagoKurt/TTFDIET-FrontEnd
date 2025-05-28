@@ -5,7 +5,7 @@ import { AuthUtils } from 'app/core/auth/auth.utils';
 import { UserService } from 'app/core/user/user.service';
 import { ApiService } from 'app/core/services/api.service';
 import { SignUpRequest, SignInRequest, SignInResponse, User } from 'app/core/user/user.types';
-import { catchError, Observable, of, switchMap, throwError, tap } from 'rxjs';
+import { catchError, Observable, of, switchMap, throwError, tap, take } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -90,35 +90,28 @@ export class AuthService {
      * Sign in using the access token
      */
     signInUsingToken(): Observable<any> {
-        // Verificar se o token existe e não está expirado
         if (!this.accessToken || AuthUtils.isTokenExpired(this.accessToken)) {
             return of(false);
         }
 
-        // Decodificar o token para obter informações do usuário
-        try {
-            const tokenPayload = AuthUtils.decodeToken(this.accessToken);
+        this._authenticated = true;
 
-            // Simular resposta do usuário baseada no token
-            // Em um cenário real, você faria uma chamada para validar o token
-            const user: User = {
-                id: tokenPayload.sub || tokenPayload.userId,
-                nome: tokenPayload.nome || '',
-                email: tokenPayload.email || '',
-                preRegister: tokenPayload.preRegister || false
-            };
-
-            // Set the authenticated flag to true
-            this._authenticated = true;
-
-            // Store the user on the user service
-            this._userService.user = user;
-
-            // Return true
-            return of(true);
-        } catch (error) {
-            return of(false);
-        }
+        return this._userService.getProfile().pipe(
+            take(1),
+            switchMap((user: User) => {
+                if (!user) {
+                    this._authenticated = false;
+                    localStorage.removeItem('accessToken');
+                    return of(false);
+                }
+                return of(true);
+            }),
+            catchError(() => {
+                this._authenticated = false;
+                localStorage.removeItem('accessToken');
+                return of(false);
+            })
+        );
     }
 
     /**
@@ -172,6 +165,7 @@ export class AuthService {
 
         // Check the access token expire date
         if (AuthUtils.isTokenExpired(this.accessToken)) {
+            localStorage.removeItem('accessToken');
             return of(false);
         }
 

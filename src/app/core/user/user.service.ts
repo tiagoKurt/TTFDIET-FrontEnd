@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { User, UpdateUserRequest } from 'app/core/user/user.types';
 import { ApiService } from 'app/core/services/api.service';
-import { map, Observable, ReplaySubject, tap } from 'rxjs';
+import { map, Observable, ReplaySubject, tap, catchError, throwError } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class UserService {
@@ -49,7 +49,13 @@ export class UserService {
     getProfile(): Observable<User> {
         return this._apiService.get<User>('/user/profile').pipe(
             tap((user) => {
-                this._user.next(user);
+                if (user) {
+                    this._user.next(user);
+                }
+            }),
+            catchError((error) => {
+                this._user.next(null);
+                return throwError(() => error);
             })
         );
     }

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray, FormControl } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';import { MatFormFieldModule } from '@angular/material/form-field';import { MatInputModule } from '@angular/material/input';import { MatSelectModule } from '@angular/material/select';import { MatRadioModule } from '@angular/material/radio';import { MatChipsModule } from '@angular/material/chips';import { MatCheckboxModule } from '@angular/material/checkbox';import { MatIconModule } from '@angular/material/icon';import { MatDividerModule } from '@angular/material/divider';import { MatTabsModule } from '@angular/material/tabs';import { MatCardModule } from '@angular/material/card';import { MatTooltipModule } from '@angular/material/tooltip';
@@ -117,13 +117,21 @@ export class ProfileComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    // Initialize form first
     this.initForm();
 
-    // Load user data
-    this.loadUserData();
+    this._userService.getProfile().subscribe({
+      next: (user) => {
+        if (user) {
+          this.currentUser = user;
+          this._userService.user = user;
+          this.fillFormWithUserData();
+        }
+      },
+      error: (error) => {
+        this._notificationService.error('Erro ao carregar dados do perfil');
+      }
+    });
 
-    // Start in view mode (disabled form)
     this.disableForm();
   }
 
@@ -173,33 +181,11 @@ export class ProfileComponent implements OnInit {
     });
   }
 
-  loadUserData(): void {
-    // Subscribe to user changes from UserService
-    this._userService.user$.subscribe(user => {
-      if (user) {
-        this.currentUser = user;
-        this.fillFormWithUserData();
-      }
-    });
-
-    // Always fetch fresh data from API to ensure we have the latest information
-    this._userService.getProfile().subscribe({
-      next: (user) => {
-        this.currentUser = user;
-        this.fillFormWithUserData();
-      },
-      error: (error) => {
-        this._notificationService.error('Erro ao carregar dados do perfil');
-      }
-    });
-  }
-
   fillFormWithUserData(): void {
     if (!this.currentUser) {
       return;
     }
 
-    // Update form with current user data
     const formData = {
       nome: this.currentUser.nome || '',
       email: this.currentUser.email || '',
@@ -209,18 +195,16 @@ export class ProfileComponent implements OnInit {
       sexo: this.currentUser.sexo || '',
       nivelAtividade: this.currentUser.nivelAtividade || '',
       objetivo: this.currentUser.objetivoDieta || '',
-      semAlergias: false, // TODO: Implementar quando tiver no backend
-      semComorbidades: false // TODO: Implementar quando tiver no backend
+      semAlergias: false,
+      semComorbidades: false
     };
 
     this.profileForm.patchValue(formData);
 
-    // Re-enable form if we were in edit mode
     if (this.editMode) {
       this.enableForm();
     }
 
-    // TODO: Implementar alergias e comorbidades quando estiverem no backend
     // if (!this.currentUser.semAlergias) {
     //   this.alergiasAlimentaresSelecionadas.forEach(alergia => {
     //     this.alergiasFormArray.push(new FormControl(alergia.id));
@@ -345,28 +329,30 @@ export class ProfileComponent implements OnInit {
         sexo: formData.sexo,
         nivelAtividade: formData.nivelAtividade,
         objetivoDieta: formData.objetivo,
-        preRegister: true // Manter como true já que o usuário já completou
+        preRegister: true
       };
 
       this._userService.update(updateData).subscribe({
         next: (response) => {
-          // Update current user data
           this.currentUser = response;
 
-          // Update user service with the response
           this._userService.user = response;
 
-          // Refill form with updated data
-          this.fillFormWithUserData();
+          this._userService.getProfile().subscribe({
+            next: (user) => {
+              this.currentUser = user;
+              this.fillFormWithUserData();
 
-          // Show success message
-          this._notificationService.success('Perfil atualizado com sucesso!');
+              this._notificationService.success('Perfil atualizado com sucesso!');
 
-          // Exit edit mode
-          this.toggleEditMode();
+              this.toggleEditMode();
+            },
+            error: (error) => {
+              this._notificationService.error('Erro ao recarregar dados do perfil');
+            }
+          });
         },
         error: (error) => {
-          // Show error message
           const errorMessage = error.error?.message || 'Erro ao atualizar perfil. Tente novamente.';
           this._notificationService.error(errorMessage);
         }
@@ -382,10 +368,17 @@ export class ProfileComponent implements OnInit {
   }
 
   cancelEdit(): void {
-    // Reset form to original user data
-    this.fillFormWithUserData();
+    this._userService.getProfile().subscribe({
+      next: (user) => {
+        this.currentUser = user;
+        this.fillFormWithUserData();
 
-    // Exit edit mode
-    this.toggleEditMode();
+        this.toggleEditMode();
+      },
+      error: (error) => {
+        this._notificationService.error('Erro ao recarregar dados do perfil');
+        this.toggleEditMode();
+      }
+    });
   }
 }

@@ -1,6 +1,6 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
-import { map } from 'rxjs';
+import { map, take } from 'rxjs/operators';
 import { UserService } from 'app/core/user/user.service';
 
 export const CompletedPreRegisterGuard: CanActivateFn = (route, state) => {
@@ -8,14 +8,17 @@ export const CompletedPreRegisterGuard: CanActivateFn = (route, state) => {
     const router = inject(Router);
 
     return userService.user$.pipe(
+        take(1),
         map(user => {
-            // Se o usuário não completou o pré-registro, redireciona para a tela de pré-registro
-            if (user && user.preRegister === false) {
+            if (state.url === '/pre-register') {
+                return true;
+            }
+
+            if (!user || user.preRegister === false) {
                 router.navigate(['/pre-register']);
                 return false;
             }
 
-            // Se o usuário completou o pré-registro, permite acesso
             return true;
         })
     );
