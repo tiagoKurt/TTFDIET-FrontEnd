@@ -1,0 +1,263 @@
+<div class="flex flex-col w-full max-w-4xl mx-auto p-6 space-y-6">
+    <!-- Cabeçalho -->
+    <div class="text-center">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Adicionar Refeição</h1>
+        <p class="text-gray-600 dark:text-gray-400 mt-2">
+            Gere sugestões personalizadas de refeições baseadas em suas preferências
+        </p>
+    </div>
+
+    <!-- Formulário -->
+    <mat-card class="p-6">
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-6">
+            <!-- Objetivo e Tipo de Refeição -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <mat-form-field appearance="outline" class="w-full">
+                    <mat-label>Objetivo</mat-label>
+                    <mat-select formControlName="objetivo" required>
+                        <mat-option *ngFor="let objetivo of objetivos" [value]="objetivo.value">
+                            {{ objetivo.label }}
+                        </mat-option>
+                    </mat-select>
+                    <mat-error *ngIf="form.get('objetivo')?.hasError('required')">
+                        Selecione um objetivo
+                    </mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="w-full">
+                    <mat-label>Tipo de Refeição</mat-label>
+                    <mat-select formControlName="refeicao" required>
+                        <mat-option *ngFor="let tipo of tiposRefeicao" [value]="tipo">
+                            {{ tipo }}
+                        </mat-option>
+                    </mat-select>
+                    <mat-error *ngIf="form.get('refeicao')?.hasError('required')">
+                        Selecione o tipo de refeição
+                    </mat-error>
+                </mat-form-field>
+            </div>
+
+            <!-- Máximo de Calorias -->
+            <mat-form-field appearance="outline" class="w-full">
+                <mat-label>Máximo de Calorias por Refeição</mat-label>
+                <input matInput
+                       type="number"
+                       formControlName="maximo_calorias_por_refeicao"
+                       min="100"
+                       max="10000"
+                       required>
+                <mat-hint>Entre 100 e 10.000 calorias</mat-hint>
+                <mat-error *ngIf="form.get('maximo_calorias_por_refeicao')?.hasError('required')">
+                    Informe o máximo de calorias
+                </mat-error>
+                <mat-error *ngIf="form.get('maximo_calorias_por_refeicao')?.hasError('min')">
+                    Mínimo de 100 calorias
+                </mat-error>
+                <mat-error *ngIf="form.get('maximo_calorias_por_refeicao')?.hasError('max')">
+                    Máximo de 10.000 calorias
+                </mat-error>
+            </mat-form-field>
+
+            <!-- Preferências Predefinidas -->
+            <div *ngIf="preferenciasPadrao.length > 0" class="space-y-3">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    Preferências Sugeridas para {{ form.get('refeicao')?.value }}
+                </h3>
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    <mat-checkbox
+                        *ngFor="let preferencia of preferenciasPadrao; let i = index"
+                        [checked]="preferenciasPredefinidas.at(i)?.value"
+                        (change)="preferenciasPredefinidas.at(i).setValue($event.checked)"
+                        class="text-sm">
+                        {{ preferencia }}
+                    </mat-checkbox>
+                </div>
+            </div>
+
+            <!-- Adicionar Preferência Personalizada -->
+            <div class="space-y-3">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    Adicionar Preferência Personalizada
+                </h3>
+                <div class="flex gap-3">
+                    <mat-form-field appearance="outline" class="flex-1">
+                        <mat-label>Nova preferência</mat-label>
+                        <input matInput
+                               formControlName="nova_preferencia"
+                               placeholder="Ex: Salmão grelhado"
+                               (keydown.enter)="adicionarPreferenciaPersonalizada(); $event.preventDefault()">
+                    </mat-form-field>
+                    <button mat-raised-button
+                            type="button"
+                            color="primary"
+                            (click)="adicionarPreferenciaPersonalizada()"
+                            [disabled]="!form.get('nova_preferencia')?.value?.trim()">
+                        <mat-icon>add</mat-icon>
+                        Adicionar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Preferências Personalizadas Adicionadas -->
+            <div *ngIf="preferenciasPersonalizadas.length > 0" class="space-y-3">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    Suas Preferências Personalizadas
+                </h3>
+                <div class="flex flex-wrap gap-2">
+                    <mat-chip-set>
+                        <mat-chip *ngFor="let preferencia of preferenciasPersonalizadas.controls; let i = index"
+                                  (removed)="removerPreferenciaPersonalizada(i)"
+                                  class="bg-primary-100 text-primary-800 dark:bg-primary-800 dark:text-primary-100">
+                            {{ preferencia.value }}
+                            <button matChipRemove>
+                                <mat-icon>cancel</mat-icon>
+                            </button>
+                        </mat-chip>
+                    </mat-chip-set>
+                </div>
+            </div>
+
+            <!-- Informações do Usuário -->
+            <div *ngIf="user" class="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                    Dados do Seu Perfil
+                </h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div *ngIf="user.peso">
+                        <span class="font-medium text-gray-600 dark:text-gray-400">Peso:</span>
+                        <span class="ml-2 text-gray-900 dark:text-white">{{ user.peso }} kg</span>
+                    </div>
+                    <div *ngIf="user.altura">
+                        <span class="font-medium text-gray-600 dark:text-gray-400">Altura:</span>
+                        <span class="ml-2 text-gray-900 dark:text-white">{{ user.altura }} cm</span>
+                    </div>
+                    <div *ngIf="user.idade">
+                        <span class="font-medium text-gray-600 dark:text-gray-400">Idade:</span>
+                        <span class="ml-2 text-gray-900 dark:text-white">{{ user.idade }} anos</span>
+                    </div>
+                    <div *ngIf="user.objetivoDieta">
+                        <span class="font-medium text-gray-600 dark:text-gray-400">Objetivo:</span>
+                        <span class="ml-2 text-gray-900 dark:text-white">{{ user.objetivoDieta }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botão de Submit -->
+            <div class="flex justify-center">
+                <button mat-raised-button
+                        type="submit"
+                        color="primary"
+                        class="px-8 py-2"
+                        [disabled]="!form.valid || loading">
+                    <mat-spinner *ngIf="loading" diameter="20" class="mr-2"></mat-spinner>
+                    <mat-icon *ngIf="!loading">restaurant</mat-icon>
+                    {{ loading ? 'Gerando Refeição...' : 'Gerar Refeição' }}
+                </button>
+            </div>
+        </form>
+    </mat-card>
+
+    <!-- Resultado -->
+    <mat-card *ngIf="resultado" class="p-6">
+        <div class="space-y-6">
+            <!-- Cabeçalho do Resultado -->
+            <div class="flex justify-between items-center">
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
+                    Sua Refeição Personalizada
+                </h2>
+                <button mat-raised-button
+                        color="accent"
+                        (click)="novaRefeicao()">
+                    <mat-icon>refresh</mat-icon>
+                    Nova Refeição
+                </button>
+            </div>
+
+            <!-- Resumo Nutricional -->
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900 dark:to-indigo-900 p-4 rounded-lg">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                    Resumo Nutricional
+                </h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                            {{ getTotalCalorias() }}
+                        </div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">Calorias</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-red-600 dark:text-red-400">
+                            {{ getTotalProteinas().toFixed(1) }}g
+                        </div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">Proteínas</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-green-600 dark:text-green-400">
+                            {{ getTotalCarboidratos().toFixed(1) }}g
+                        </div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">Carboidratos</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                            {{ getTotalGorduras().toFixed(1) }}g
+                        </div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">Gorduras</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lista de Alimentos -->
+            <div class="space-y-4">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    Alimentos da Refeição
+                </h3>
+                <div class="grid gap-4">
+                    <div *ngFor="let alimento of resultado"
+                         class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow">
+                        <div class="flex justify-between items-start mb-3">
+                            <h4 class="text-lg font-semibold text-gray-900 dark:text-white">
+                                {{ alimento.nome }}
+                            </h4>
+                            <span class="text-orange-600 dark:text-orange-400 font-bold">
+                                {{ alimento.calorias }} kcal
+                            </span>
+                        </div>
+
+                        <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-3 text-sm">
+                            <div>
+                                <span class="font-medium text-gray-600 dark:text-gray-400">Quantidade:</span>
+                                <span class="ml-1 text-gray-900 dark:text-white">
+                                    {{ alimento.quantidade }} {{ alimento.unidade_medida }}
+                                </span>
+                            </div>
+                            <div>
+                                <span class="font-medium text-gray-600 dark:text-gray-400">Proteínas:</span>
+                                <span class="ml-1 text-red-600 dark:text-red-400 font-medium">
+                                    {{ alimento.proteinas }}g
+                                </span>
+                            </div>
+                            <div>
+                                <span class="font-medium text-gray-600 dark:text-gray-400">Carboidratos:</span>
+                                <span class="ml-1 text-green-600 dark:text-green-400 font-medium">
+                                    {{ alimento.carboidratos }}g
+                                </span>
+                            </div>
+                            <div>
+                                <span class="font-medium text-gray-600 dark:text-gray-400">Gorduras:</span>
+                                <span class="ml-1 text-yellow-600 dark:text-yellow-400 font-medium">
+                                    {{ alimento.gordura }}g
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-50 dark:bg-gray-800 p-3 rounded">
+                            <p class="text-sm text-gray-700 dark:text-gray-300 italic">
+                                {{ alimento.mensagem }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </mat-card>
+</div>

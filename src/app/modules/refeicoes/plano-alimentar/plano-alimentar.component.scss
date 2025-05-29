@@ -1,0 +1,237 @@
+:host {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    width: 100%;
+}
+
+.mat-mdc-form-field {
+    .mat-mdc-text-field-wrapper {
+        background-color: transparent;
+    }
+}
+
+.mat-mdc-card {
+    background-color: var(--fuse-bg-card);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+    .dark & {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+}
+
+.mat-mdc-tab-group {
+    .mat-mdc-tab-header {
+        border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+
+        .dark & {
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+    }
+
+    .mat-mdc-tab {
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+
+        &.mat-mdc-tab-active {
+            .mat-mdc-tab-label {
+                color: var(--fuse-primary);
+            }
+        }
+    }
+}
+
+.mat-expansion-panel {
+    background-color: var(--fuse-bg-card);
+    border-radius: 8px !important;
+    margin: 8px 0 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12) !important;
+
+    .mat-expansion-panel-header {
+        padding: 16px 24px;
+        height: auto !important;
+
+        .mat-expansion-panel-header-title {
+            font-weight: 500;
+            color: var(--fuse-text-primary);
+        }
+
+        &:hover {
+            background-color: var(--fuse-bg-hover) !important;
+        }
+
+        &.mat-expanded {
+            border-bottom: 1px solid var(--fuse-border);
+        }
+    }
+
+    .mat-expansion-panel-content {
+        .mat-expansion-panel-body {
+            padding: 0;
+        }
+    }
+}
+
+.mat-mdc-chip-set {
+    .mat-mdc-chip {
+        border-radius: 16px;
+        font-size: 12px;
+
+        .mat-mdc-chip-remove {
+            opacity: 0.7;
+
+            &:hover {
+                opacity: 1;
+            }
+        }
+    }
+}
+
+.nutrient-colors {
+    .calories { color: #f97316; }
+    .proteins { color: #dc2626; }
+    .carbs { color: #16a34a; }
+    .fats { color: #ca8a04; }
+
+    .dark & {
+        .calories { color: #fb923c; }
+        .proteins { color: #f87171; }
+        .carbs { color: #4ade80; }
+        .fats { color: #fbbf24; }
+    }
+}
+
+.plano-container {
+    animation: slideInUp 0.5s ease-out;
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.alimento-card {
+    transition: all 0.3s ease;
+    border-left: 4px solid transparent;
+
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        border-left-color: var(--fuse-primary);
+
+        .dark & {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+    }
+}
+
+.stats-gradient {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+    .dark & {
+        background: linear-gradient(135deg, #434343 0%, #000000 100%);
+    }
+}
+
+@media (max-width: 768px) {
+    .grid-responsive {
+        grid-template-columns: 1fr;
+    }
+
+    .nutrient-summary {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+
+    .food-details {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .mat-expansion-panel-header {
+        padding: 12px 16px !important;
+
+        .nutrient-info {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 4px;
+        }
+    }
+
+    .mat-mdc-tab-group {
+        .mat-mdc-tab {
+            min-width: 100px;
+            font-size: 12px;
+        }
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+
+    .alimento-card {
+        .food-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .food-nutrients {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+}
+
+.loading-overlay {
+    .mat-mdc-button {
+        position: relative;
+
+        .mat-mdc-progress-spinner {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+    }
+}
+
+::ng-deep {
+    .success-snackbar {
+        background-color: #16a34a !important;
+        color: white !important;
+    }
+
+    .error-snackbar {
+        background-color: #dc2626 !important;
+        color: white !important;
+    }
+}
+
+::ng-deep {
+    .mat-mdc-tab-group {
+        .mat-mdc-tab-body-wrapper {
+            .mat-mdc-tab-body {
+                .mat-mdc-tab-body-content {
+                    overflow: visible !important;
+                }
+            }
+        }
+    }
+
+    .mat-expansion-indicator {
+        &::after {
+            color: var(--fuse-text-secondary);
+        }
+    }
+}

@@ -56,7 +56,7 @@ export const defaultNavigation: FuseNavigationItem[] = [
                     },
                     {
                         id: 'refeicoes.historico',
-                        title: 'Histórico',
+                        title: 'Plano Alimentar',
                         type: 'basic',
                         link: '/refeicoes/historico',
                     },

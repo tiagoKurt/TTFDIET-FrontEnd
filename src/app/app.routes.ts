@@ -63,7 +63,9 @@ export const appRoutes: Route[] = [
 
         children: [
             {path: 'home', loadChildren: () => import('app/modules/home/home.routes')},
-            {path: 'profile', loadChildren: () => import('app/modules/User/profile/profile.routes')}
+            {path: 'profile', loadChildren: () => import('app/modules/User/profile/profile.routes')},
+            {path: 'refeicoes/adicionar', loadChildren: () => import('app/modules/refeicoes/adicionar/adicionar-refeicao.routes')},
+            {path: 'refeicoes/historico', loadChildren: () => import('app/modules/refeicoes/plano-alimentar/plano-alimentar.routes')}
         ]
     }
 ];

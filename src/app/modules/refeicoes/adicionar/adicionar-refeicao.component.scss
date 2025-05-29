@@ -1,0 +1,159 @@
+:host {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    width: 100%;
+}
+
+.mat-mdc-form-field {
+    .mat-mdc-text-field-wrapper {
+        background-color: transparent;
+    }
+}
+
+.mat-mdc-card {
+    background-color: var(--fuse-bg-card);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+    .dark & {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+}
+
+.mat-mdc-checkbox {
+    .mdc-form-field {
+        font-size: 14px;
+    }
+}
+
+.mat-mdc-chip-set {
+    .mat-mdc-chip {
+        border-radius: 16px;
+        font-size: 12px;
+
+        .mat-mdc-chip-remove {
+            opacity: 0.7;
+
+            &:hover {
+                opacity: 1;
+            }
+        }
+    }
+}
+
+.mat-mdc-progress-spinner {
+    margin-right: 8px;
+}
+
+.nutrient-card {
+    .calories {
+        color: #f97316;
+    }
+
+    .proteins {
+        color: #dc2626;
+    }
+
+    .carbs {
+        color: #16a34a;
+    }
+
+    .fats {
+        color: #ca8a04;
+    }
+
+    .dark & {
+        .calories {
+            color: #fb923c;
+        }
+
+        .proteins {
+            color: #f87171;
+        }
+
+        .carbs {
+            color: #4ade80;
+        }
+
+        .fats {
+            color: #fbbf24;
+        }
+    }
+}
+
+.resultado-container {
+    animation: slideInUp 0.5s ease-out;
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.food-item {
+    transition: all 0.3s ease;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+        .dark & {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+    }
+}
+
+@media (max-width: 768px) {
+    .grid-responsive {
+        grid-template-columns: 1fr;
+    }
+
+    .preferences-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .nutrient-summary {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .food-details {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+}
+
+.loading-overlay {
+    .mat-mdc-button {
+        position: relative;
+
+        .mat-mdc-progress-spinner {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .button-text {
+            margin-left: 24px;
+        }
+    }
+}
+
+::ng-deep {
+    .success-snackbar {
+        background-color: #16a34a !important;
+        color: white !important;
+    }
+
+    .error-snackbar {
+        background-color: #dc2626 !important;
+        color: white !important;
+    }
+}
