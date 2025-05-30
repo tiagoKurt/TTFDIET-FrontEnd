@@ -3,12 +3,43 @@
     <div class="text-center">
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Adicionar Refeição</h1>
         <p class="text-gray-600 dark:text-gray-400 mt-2">
-            Gere sugestões personalizadas de refeições baseadas em suas preferências
+            Gere sugestões personalizadas de refeições baseadas em suas preferências ou por imagem
         </p>
     </div>
 
-    <!-- Formulário -->
+    <!-- Seletor do Método de Geração -->
     <mat-card class="p-6">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            Como você gostaria de gerar sua refeição?
+        </h3>
+        <mat-radio-group [(ngModel)]="metodoGeracao" class="method-selection flex flex-col space-y-3">
+            <mat-radio-button value="preferencias" class="w-full">
+                <div class="flex items-center space-x-3">
+                    <mat-icon>restaurant_menu</mat-icon>
+                    <div>
+                        <div class="font-medium">Por Preferências</div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">
+                            Configure suas preferências alimentares e objetivos
+                        </div>
+                    </div>
+                </div>
+            </mat-radio-button>
+            <mat-radio-button value="imagem" class="w-full">
+                <div class="flex items-center space-x-3">
+                    <mat-icon>camera_alt</mat-icon>
+                    <div>
+                        <div class="font-medium">Por Imagem</div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">
+                            Envie uma foto da sua refeição para análise nutricional
+                        </div>
+                    </div>
+                </div>
+            </mat-radio-button>
+        </mat-radio-group>
+    </mat-card>
+
+    <!-- Formulário de Preferências -->
+    <mat-card *ngIf="metodoGeracao === 'preferencias'" class="p-6">
         <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-6">
             <!-- Objetivo e Tipo de Refeição -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -155,6 +186,70 @@
                 </button>
             </div>
         </form>
+    </mat-card>
+
+    <!-- Upload de Imagem -->
+    <mat-card *ngIf="metodoGeracao === 'imagem'" class="p-6">
+        <div class="space-y-6">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white text-center">
+                Envie uma foto da sua refeição
+            </h3>
+
+            <!-- Área de Drag and Drop -->
+            <div
+                class="upload-area border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center hover:border-primary-500 transition-colors cursor-pointer"
+                [class.drag-over]="isDragOver"
+                (dragover)="onDragOver($event)"
+                (dragleave)="onDragLeave($event)"
+                (drop)="onDrop($event)"
+                (click)="fileInput.click()">
+
+                <div *ngIf="!selectedImage" class="space-y-4">
+                    <mat-icon class="text-6xl text-gray-400 dark:text-gray-500">cloud_upload</mat-icon>
+                    <div>
+                        <p class="text-lg font-medium text-gray-900 dark:text-white">
+                            Arraste uma imagem aqui ou clique para selecionar
+                        </p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                            Formatos aceitos: PNG, JPG, JPEG (máx. 10MB)
+                        </p>
+                    </div>
+                </div>
+
+                <div *ngIf="selectedImage" class="space-y-4">
+                    <img [src]="imagePreview" alt="Preview da imagem" class="image-preview max-w-full max-h-64 mx-auto rounded-lg shadow-md">
+                    <div class="flex justify-center space-x-3">
+                        <button mat-raised-button color="warn" (click)="removeImage(); $event.stopPropagation()">
+                            <mat-icon>delete</mat-icon>
+                            Remover
+                        </button>
+                        <button mat-raised-button (click)="fileInput.click(); $event.stopPropagation()">
+                            <mat-icon>edit</mat-icon>
+                            Trocar Imagem
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <input #fileInput
+                   type="file"
+                   accept="image/*"
+                   (change)="onFileSelected($event)"
+                   style="display: none;">
+
+            <!-- Botão de Análise -->
+            <div class="flex justify-center">
+                <button mat-raised-button
+                        color="primary"
+                        class="px-8 py-2"
+                        [disabled]="!selectedImage || loading"
+                        (click)="analisarImagem()">
+                    <mat-spinner *ngIf="loading" diameter="20" class="mr-2"></mat-spinner>
+                    <mat-icon *ngIf="!loading">analytics</mat-icon>
+                    {{ loading ? 'Analisando Imagem...' : 'Analisar Refeição' }}
+                </button>
+            </div>
+        </div>
     </mat-card>
 
     <!-- Resultado -->

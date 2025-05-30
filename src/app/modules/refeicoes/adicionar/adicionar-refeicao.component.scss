@@ -146,6 +146,78 @@
     }
 }
 
+.upload-area {
+    transition: all 0.3s ease;
+
+    &.drag-over {
+        border-color: var(--fuse-primary-500) !important;
+        background-color: var(--fuse-primary-50);
+        transform: scale(1.02);
+
+        .dark & {
+            background-color: var(--fuse-primary-900);
+        }
+    }
+}
+
+.image-preview {
+    max-width: 100%;
+    max-height: 300px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+    .dark & {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    }
+}
+
+.radio-group {
+    .mat-mdc-radio-button {
+        margin-bottom: 16px;
+        width: 100%;
+
+        .mat-mdc-radio-label-content {
+            width: 100%;
+            padding-left: 8px;
+        }
+
+        &:hover {
+            background-color: var(--fuse-bg-hover);
+            border-radius: 8px;
+            padding: 8px;
+            margin: -8px;
+        }
+    }
+}
+
+.method-selection {
+    .mat-mdc-radio-button {
+        border: 1px solid transparent;
+        border-radius: 8px;
+        padding: 16px;
+        transition: all 0.3s ease;
+
+        &:hover {
+            border-color: var(--fuse-primary-200);
+            background-color: var(--fuse-primary-50);
+
+            .dark & {
+                border-color: var(--fuse-primary-800);
+                background-color: var(--fuse-primary-900);
+            }
+        }
+
+        &.mat-mdc-radio-checked {
+            border-color: var(--fuse-primary-500);
+            background-color: var(--fuse-primary-100);
+
+            .dark & {
+                background-color: var(--fuse-primary-800);
+            }
+        }
+    }
+}
+
 ::ng-deep {
     .success-snackbar {
         background-color: #16a34a !important;
