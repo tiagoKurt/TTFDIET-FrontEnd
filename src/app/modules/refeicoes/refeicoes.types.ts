@@ -8,6 +8,7 @@ export interface RefeicaoRequest {
 }
 
 export interface AlimentoResponse {
+    id?: number;
     nome: string;
     quantidade: number;
     calorias: number;
@@ -16,6 +17,46 @@ export interface AlimentoResponse {
     gordura: number;
     unidade_medida: string;
     mensagem: string;
+}
+
+export interface RefeicaoResponse {
+    id: number;
+    nome: string;
+    observacao: string;
+    dataHoraRefeicao: string;
+    alimentos: AlimentoResponse[];
+}
+
+export interface PlanoAlimentarDetalhado {
+    id: number;
+    objetivo: string;
+    pesoUsuario: number;
+    gastoCaloricoBasalUsuario: number;
+    preferenciasUsuario: string[];
+    maximoCaloriasPorRefeicaoUsuario: number;
+    tipoRefeicaoSolicitada: string;
+    dataCriacao: string;
+    refeicoes: RefeicaoResponse[];
+}
+
+export interface AlimentoUpdate {
+    id: number;
+    nome: string;
+    quantidade: number;
+    calorias: number;
+    proteinas: number;
+    carboidratos: number;
+    gordura: number;
+    unidade_medida: string;
+    mensagem: string;
+}
+
+export interface AlimentoListItem {
+    nome: string;
+    calorias_por_100g: number;
+    proteinas_por_100g: number;
+    carboidratos_por_100g: number;
+    gordura_por_100g: number;
 }
 
 export interface PlanoAlimentarResponse {

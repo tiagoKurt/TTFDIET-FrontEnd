@@ -16,7 +16,7 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { RefeicoesService } from '../refeicoes.service';
 import { UserService } from 'app/core/user/user.service';
-import { TipoRefeicao, TipoObjetivo, AlimentoResponse, RefeicaoRequest, PlanoAlimentarResponse } from '../refeicoes.types';
+import { TipoRefeicao, TipoObjetivo, AlimentoResponse, RefeicaoRequest, PlanoAlimentarResponse, PlanoAlimentarDetalhado, AlimentoListItem, AlimentoUpdate } from '../refeicoes.types';
 import { User } from 'app/core/user/user.types';
 import { finalize } from 'rxjs';
 
@@ -54,6 +54,12 @@ export class PlanoAlimentarComponent implements OnInit {
     resultado: PlanoAlimentarResponse | null = null;
     planoSemanal: { [refeicao: string]: { [dia: string]: AlimentoResponse[] } } | null = null;
 
+    planosSalvos: PlanoAlimentarDetalhado[] = [];
+    planoSelecionado: PlanoAlimentarDetalhado | null = null;
+    alimentosDisponiveis: AlimentoListItem[] = [];
+    alimentoEditando: { planoId: number; refeicaoId: number; alimentoId: number } | null = null;
+    modoVisualizacao: 'gerar' | 'visualizar' = 'gerar';
+
     tiposRefeicao: TipoRefeicao[] = [
         'Café da manhã',
         'Almoço',
@@ -75,6 +81,8 @@ export class PlanoAlimentarComponent implements OnInit {
         this.initializeForm();
         this.loadUserProfile();
         this.setupFormWatchers();
+        this.carregarPlanosSalvos();
+        this.carregarAlimentosDisponiveis();
     }
 
     private initializeForm(): void {
@@ -166,7 +174,7 @@ export class PlanoAlimentarComponent implements OnInit {
             request.peso = this.user.peso;
         }
 
-        if (this.user?.peso && this.user?.altura && this.user?.idade && this.user?.sexo && this.user?.nivelAtividade) {
+        if (this.user?.peso && this.user?.peso && this.user?.altura && this.user?.idade && this.user?.sexo && this.user?.nivelAtividade) {
             request.gasto_calorico_basal = this._refeicoesService.calcularGastoCalorico(
                 this.user.peso,
                 this.user.altura,
@@ -392,5 +400,97 @@ export class PlanoAlimentarComponent implements OnInit {
         });
 
         return total;
+    }
+
+    carregarPlanosSalvos(): void {
+        this._refeicoesService.listarPlanos()
+            .pipe(takeUntilDestroyed(this._destroyRef))
+            .subscribe({
+                next: (planos) => {
+                    this.planosSalvos = planos;
+                },
+                error: (error) => {
+                    this._snackBar.open('Erro ao carregar planos salvos. Tente novamente mais tarde.', 'Fechar', {
+                        duration: 5000,
+                        panelClass: ['error-snackbar']
+                    });
+                }
+            });
+    }
+
+    carregarAlimentosDisponiveis(): void {
+        this._refeicoesService.listarAlimentos()
+            .pipe(takeUntilDestroyed(this._destroyRef))
+            .subscribe({
+                next: (alimentos) => {
+                    this.alimentosDisponiveis = alimentos;
+                },
+                error: (error) => {
+                    this._snackBar.open('Erro ao carregar alimentos disponíveis. Tente novamente mais tarde.', 'Fechar', {
+                        duration: 5000,
+                        panelClass: ['error-snackbar']
+                    });
+                }
+            });
+    }
+
+    editarPlano(planoId: number): void {
+        this.planoSelecionado = this.planosSalvos.find(p => p.id === planoId) || null;
+        this.modoVisualizacao = 'visualizar';
+    }
+
+    editarAlimento(planoId: number, refeicaoId: number, alimentoId: number): void {
+        this.alimentoEditando = { planoId, refeicaoId, alimentoId };
+    }
+
+    salvarEdicaoAlimento(alimentoAtualizado: AlimentoUpdate): void {
+        if (!this.alimentoEditando) return;
+
+        this.loading = true;
+        this._refeicoesService.atualizarAlimentoPlano(
+            this.alimentoEditando.planoId,
+            this.alimentoEditando.refeicaoId,
+            alimentoAtualizado
+        )
+        .pipe(
+            finalize(() => this.loading = false),
+            takeUntilDestroyed(this._destroyRef)
+        )
+        .subscribe({
+            next: (alimentoAtualizadoResponse) => {
+                this._snackBar.open('Alimento atualizado com sucesso!', 'Fechar', {
+                    duration: 3000,
+                    panelClass: ['success-snackbar']
+                });
+
+                if (this.planoSelecionado) {
+                    const refeicao = this.planoSelecionado.refeicoes.find(r => r.id === this.alimentoEditando!.refeicaoId);
+                    if (refeicao) {
+                        const alimentoIndex = refeicao.alimentos.findIndex(a => a.id === this.alimentoEditando!.alimentoId);
+                        if (alimentoIndex >= 0) {
+                            refeicao.alimentos[alimentoIndex] = alimentoAtualizadoResponse;
+                        }
+                    }
+                }
+
+                this.cancelarEdicao();
+            },
+            error: (error) => {
+                this._snackBar.open('Erro ao atualizar alimento. Tente novamente.', 'Fechar', {
+                    duration: 5000,
+                    panelClass: ['error-snackbar']
+                });
+            }
+        });
+    }
+
+    cancelarEdicao(): void {
+        this.alimentoEditando = null;
+    }
+
+    voltarParaLista(): void {
+        this.planoSelecionado = null;
+        this.modoVisualizacao = 'gerar';
+        this.cancelarEdicao();
     }
 }

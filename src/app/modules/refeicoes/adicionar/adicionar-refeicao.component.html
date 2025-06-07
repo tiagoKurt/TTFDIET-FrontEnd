@@ -307,48 +307,149 @@
                     Alimentos da Refeição
                 </h3>
                 <div class="grid gap-4">
-                    <div *ngFor="let alimento of resultado"
+                    <div *ngFor="let alimento of resultado.alimentos"
                          class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow">
-                        <div class="flex justify-between items-start mb-3">
-                            <h4 class="text-lg font-semibold text-gray-900 dark:text-white">
-                                {{ alimento.nome }}
-                            </h4>
-                            <span class="text-orange-600 dark:text-orange-400 font-bold">
-                                {{ alimento.calorias }} kcal
-                            </span>
+
+                        <!-- Modo de Visualização -->
+                        <div *ngIf="editandoAlimento?.id !== alimento.id">
+                            <div class="flex justify-between items-start mb-3">
+                                <h4 class="text-lg font-semibold text-gray-900 dark:text-white">
+                                    {{ alimento.nome }}
+                                </h4>
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-orange-600 dark:text-orange-400 font-bold">
+                                        {{ alimento.calorias }} kcal
+                                    </span>
+                                    <button mat-icon-button
+                                            color="primary"
+                                            (click)="editarAlimento(alimento)"
+                                            matTooltip="Editar alimento">
+                                        <mat-icon>edit</mat-icon>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-3 text-sm">
+                                <div>
+                                    <span class="font-medium text-gray-600 dark:text-gray-400">Quantidade:</span>
+                                    <span class="ml-1 text-gray-900 dark:text-white">
+                                        {{ alimento.quantidade }} {{ alimento.unidade_medida }}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span class="font-medium text-gray-600 dark:text-gray-400">Proteínas:</span>
+                                    <span class="ml-1 text-red-600 dark:text-red-400 font-medium">
+                                        {{ alimento.proteinas }}g
+                                    </span>
+                                </div>
+                                <div>
+                                    <span class="font-medium text-gray-600 dark:text-gray-400">Carboidratos:</span>
+                                    <span class="ml-1 text-green-600 dark:text-green-400 font-medium">
+                                        {{ alimento.carboidratos }}g
+                                    </span>
+                                </div>
+                                <div>
+                                    <span class="font-medium text-gray-600 dark:text-gray-400">Gorduras:</span>
+                                    <span class="ml-1 text-yellow-600 dark:text-yellow-400 font-medium">
+                                        {{ alimento.gordura }}g
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="bg-gray-50 dark:bg-gray-800 p-3 rounded">
+                                <p class="text-sm text-gray-700 dark:text-gray-300 italic">
+                                    {{ alimento.mensagem }}
+                                </p>
+                            </div>
                         </div>
 
-                        <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-3 text-sm">
-                            <div>
-                                <span class="font-medium text-gray-600 dark:text-gray-400">Quantidade:</span>
-                                <span class="ml-1 text-gray-900 dark:text-white">
-                                    {{ alimento.quantidade }} {{ alimento.unidade_medida }}
-                                </span>
+                        <!-- Modo de Edição -->
+                        <div *ngIf="editandoAlimento?.id === alimento.id" class="space-y-4">
+                            <div class="flex justify-between items-center">
+                                <h4 class="text-lg font-semibold text-gray-900 dark:text-white">
+                                    Editando Alimento
+                                </h4>
+                                <div class="flex space-x-2">
+                                    <button mat-raised-button
+                                            color="primary"
+                                            (click)="salvarEdicaoAlimento()">
+                                        <mat-icon>save</mat-icon>
+                                        Salvar
+                                    </button>
+                                    <button mat-raised-button
+                                            (click)="cancelarEdicao()">
+                                        <mat-icon>cancel</mat-icon>
+                                        Cancelar
+                                    </button>
+                                </div>
                             </div>
-                            <div>
-                                <span class="font-medium text-gray-600 dark:text-gray-400">Proteínas:</span>
-                                <span class="ml-1 text-red-600 dark:text-red-400 font-medium">
-                                    {{ alimento.proteinas }}g
-                                </span>
-                            </div>
-                            <div>
-                                <span class="font-medium text-gray-600 dark:text-gray-400">Carboidratos:</span>
-                                <span class="ml-1 text-green-600 dark:text-green-400 font-medium">
-                                    {{ alimento.carboidratos }}g
-                                </span>
-                            </div>
-                            <div>
-                                <span class="font-medium text-gray-600 dark:text-gray-400">Gorduras:</span>
-                                <span class="ml-1 text-yellow-600 dark:text-yellow-400 font-medium">
-                                    {{ alimento.gordura }}g
-                                </span>
-                            </div>
-                        </div>
 
-                        <div class="bg-gray-50 dark:bg-gray-800 p-3 rounded">
-                            <p class="text-sm text-gray-700 dark:text-gray-300 italic">
-                                {{ alimento.mensagem }}
-                            </p>
+                            <!-- Seletor de Alimento Predefinido -->
+                            <div class="space-y-3">
+                                <h5 class="font-medium text-gray-900 dark:text-white">
+                                    Selecionar de Alimentos Disponíveis (opcional)
+                                </h5>
+                                <mat-form-field appearance="outline" class="w-full">
+                                    <mat-label>Escolher alimento</mat-label>
+                                    <mat-select (selectionChange)="selecionarAlimentoDisponivel($event.value)">
+                                        <mat-option *ngFor="let alimentoDisponivel of alimentosDisponiveis"
+                                                    [value]="alimentoDisponivel">
+                                            {{ alimentoDisponivel.nome }}
+                                            ({{ alimentoDisponivel.calorias_por_100g }} kcal/100g)
+                                        </mat-option>
+                                    </mat-select>
+                                </mat-form-field>
+                            </div>
+
+                            <!-- Campos de Edição -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <mat-form-field appearance="outline">
+                                    <mat-label>Nome do Alimento</mat-label>
+                                    <input matInput [(ngModel)]="editandoAlimento.nome" required>
+                                </mat-form-field>
+
+                                <mat-form-field appearance="outline">
+                                    <mat-label>Quantidade</mat-label>
+                                    <input matInput type="number" [(ngModel)]="editandoAlimento.quantidade" required>
+                                </mat-form-field>
+
+                                <mat-form-field appearance="outline">
+                                    <mat-label>Unidade de Medida</mat-label>
+                                    <mat-select [(ngModel)]="editandoAlimento.unidade_medida">
+                                        <mat-option value="GRAMA">Gramas</mat-option>
+                                        <mat-option value="MILILITRO">Mililitros</mat-option>
+                                        <mat-option value="UNIDADE">Unidade</mat-option>
+                                        <mat-option value="COLHER_SOPA">Colher de Sopa</mat-option>
+                                        <mat-option value="COLHER_CHA">Colher de Chá</mat-option>
+                                        <mat-option value="XICARA">Xícara</mat-option>
+                                    </mat-select>
+                                </mat-form-field>
+
+                                <mat-form-field appearance="outline">
+                                    <mat-label>Calorias</mat-label>
+                                    <input matInput type="number" [(ngModel)]="editandoAlimento.calorias" required>
+                                </mat-form-field>
+
+                                <mat-form-field appearance="outline">
+                                    <mat-label>Proteínas (g)</mat-label>
+                                    <input matInput type="number" [(ngModel)]="editandoAlimento.proteinas" required>
+                                </mat-form-field>
+
+                                <mat-form-field appearance="outline">
+                                    <mat-label>Carboidratos (g)</mat-label>
+                                    <input matInput type="number" [(ngModel)]="editandoAlimento.carboidratos" required>
+                                </mat-form-field>
+
+                                <mat-form-field appearance="outline">
+                                    <mat-label>Gorduras (g)</mat-label>
+                                    <input matInput type="number" [(ngModel)]="editandoAlimento.gordura" required>
+                                </mat-form-field>
+                            </div>
+
+                            <mat-form-field appearance="outline" class="w-full">
+                                <mat-label>Observações</mat-label>
+                                <textarea matInput [(ngModel)]="editandoAlimento.mensagem" rows="3"></textarea>
+                            </mat-form-field>
                         </div>
                     </div>
                 </div>

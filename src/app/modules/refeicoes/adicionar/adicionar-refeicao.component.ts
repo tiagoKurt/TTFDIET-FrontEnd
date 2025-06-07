@@ -12,11 +12,13 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatRadioModule } from '@angular/material/radio';
+import { MatDialogModule, MatDialog } from '@angular/material/dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { HttpClient } from '@angular/common/http';
 import { RefeicoesService } from '../refeicoes.service';
 import { UserService } from 'app/core/user/user.service';
-import { TipoRefeicao, TipoObjetivo, AlimentoResponse, RefeicaoRequest } from '../refeicoes.types';
+import { TipoRefeicao, TipoObjetivo, AlimentoResponse, RefeicaoRequest, RefeicaoResponse, AlimentoListItem } from '../refeicoes.types';
 import { User } from 'app/core/user/user.types';
 import { finalize } from 'rxjs';
 
@@ -36,7 +38,9 @@ import { finalize } from 'rxjs';
         MatChipsModule,
         MatIconModule,
         MatProgressSpinnerModule,
-        MatRadioModule
+        MatRadioModule,
+        MatDialogModule,
+        MatTooltipModule
     ],
     templateUrl: './adicionar-refeicao.component.html',
     styleUrls: ['./adicionar-refeicao.component.scss']
@@ -48,11 +52,14 @@ export class AdicionarRefeicaoComponent implements OnInit {
     private _snackBar = inject(MatSnackBar);
     private _destroyRef = inject(DestroyRef);
     private _httpClient = inject(HttpClient);
+    private _dialog = inject(MatDialog);
 
     form: FormGroup;
     user: User | null = null;
     loading = false;
-    resultado: AlimentoResponse[] | null = null;
+    resultado: RefeicaoResponse | null = null;
+    alimentosDisponiveis: AlimentoListItem[] = [];
+    editandoAlimento: AlimentoResponse | null = null;
 
     metodoGeracao: 'preferencias' | 'imagem' = 'preferencias';
     selectedImage: File | null = null;
@@ -79,6 +86,7 @@ export class AdicionarRefeicaoComponent implements OnInit {
         this.initializeForm();
         this.loadUserProfile();
         this.setupFormWatchers();
+        this.carregarAlimentosDisponiveis();
     }
 
     private initializeForm(): void {
@@ -198,7 +206,7 @@ export class AdicionarRefeicaoComponent implements OnInit {
 
             const request = this.buildRequest();
 
-            this._refeicoesService.gerarRefeicao(request)
+            this._refeicoesService.gerarESalvarRefeicao(request)
                 .pipe(
                     finalize(() => this.loading = false),
                     takeUntilDestroyed(this._destroyRef)
@@ -206,7 +214,7 @@ export class AdicionarRefeicaoComponent implements OnInit {
                 .subscribe({
                     next: (response) => {
                         this.resultado = response;
-                        this._snackBar.open('Refeição gerada com sucesso!', 'Fechar', {
+                        this._snackBar.open('Refeição gerada e salva com sucesso!', 'Fechar', {
                             duration: 3000,
                             panelClass: ['success-snackbar']
                         });
@@ -221,24 +229,82 @@ export class AdicionarRefeicaoComponent implements OnInit {
         }
     }
 
+    editarAlimento(alimento: AlimentoResponse): void {
+        this.editandoAlimento = { ...alimento };
+    }
+
+    salvarEdicaoAlimento(): void {
+        if (!this.editandoAlimento || !this.resultado) return;
+
+        const alimentoUpdate = {
+            id: this.editandoAlimento.id!,
+            nome: this.editandoAlimento.nome,
+            quantidade: this.editandoAlimento.quantidade,
+            calorias: this.editandoAlimento.calorias,
+            proteinas: this.editandoAlimento.proteinas,
+            carboidratos: this.editandoAlimento.carboidratos,
+            gordura: this.editandoAlimento.gordura,
+            unidade_medida: this.editandoAlimento.unidade_medida,
+            mensagem: this.editandoAlimento.mensagem
+        };
+
+        this._refeicoesService.atualizarAlimento(this.resultado.id, alimentoUpdate)
+            .pipe(takeUntilDestroyed(this._destroyRef))
+            .subscribe({
+                next: (alimentoAtualizado) => {
+                    const index = this.resultado!.alimentos.findIndex(a => a.id === alimentoAtualizado.id);
+                    if (index !== -1) {
+                        this.resultado!.alimentos[index] = alimentoAtualizado;
+                    }
+                    this.editandoAlimento = null;
+                    this._snackBar.open('Alimento atualizado com sucesso!', 'Fechar', {
+                        duration: 3000,
+                        panelClass: ['success-snackbar']
+                    });
+                },
+                error: (error) => {
+                    this._snackBar.open('Erro ao atualizar alimento.', 'Fechar', {
+                        duration: 5000,
+                        panelClass: ['error-snackbar']
+                    });
+                }
+            });
+    }
+
+    cancelarEdicao(): void {
+        this.editandoAlimento = null;
+    }
+
+    selecionarAlimentoDisponivel(alimentoSelecionado: AlimentoListItem): void {
+        if (!this.editandoAlimento) return;
+
+        this.editandoAlimento.nome = alimentoSelecionado.nome;
+        this.editandoAlimento.quantidade = 100;
+        this.editandoAlimento.calorias = alimentoSelecionado.calorias_por_100g;
+        this.editandoAlimento.proteinas = alimentoSelecionado.proteinas_por_100g;
+        this.editandoAlimento.carboidratos = alimentoSelecionado.carboidratos_por_100g;
+        this.editandoAlimento.gordura = alimentoSelecionado.gordura_por_100g;
+        this.editandoAlimento.unidade_medida = 'GRAMA';
+    }
+
     getTotalCalorias(): number {
         if (!this.resultado) return 0;
-        return this.resultado.reduce((total, alimento) => total + alimento.calorias, 0);
+        return this.resultado.alimentos.reduce((total, alimento) => total + alimento.calorias, 0);
     }
 
     getTotalProteinas(): number {
         if (!this.resultado) return 0;
-        return this.resultado.reduce((total, alimento) => total + alimento.proteinas, 0);
+        return this.resultado.alimentos.reduce((total, alimento) => total + alimento.proteinas, 0);
     }
 
     getTotalCarboidratos(): number {
         if (!this.resultado) return 0;
-        return this.resultado.reduce((total, alimento) => total + alimento.carboidratos, 0);
+        return this.resultado.alimentos.reduce((total, alimento) => total + alimento.carboidratos, 0);
     }
 
     getTotalGorduras(): number {
         if (!this.resultado) return 0;
-        return this.resultado.reduce((total, alimento) => total + alimento.gordura, 0);
+        return this.resultado.alimentos.reduce((total, alimento) => total + alimento.gordura, 0);
     }
 
     novaRefeicao(): void {
@@ -284,7 +350,6 @@ export class AdicionarRefeicaoComponent implements OnInit {
     }
 
     private handleFileSelection(file: File): void {
-        // Validar tipo de arquivo
         if (!file.type.startsWith('image/')) {
             this._snackBar.open('Por favor, selecione apenas arquivos de imagem.', 'Fechar', {
                 duration: 3000,
@@ -326,23 +391,14 @@ export class AdicionarRefeicaoComponent implements OnInit {
         const formData = new FormData();
         formData.append('imagem', this.selectedImage);
 
-        this._httpClient.post<any[]>('https://agenteia.tigasolutions.com.br/processar_imagem', formData)
+        this._httpClient.post<RefeicaoResponse>('http://localhost:8080/api/refeicoes/gerar-por-foto', formData)
             .pipe(
                 finalize(() => this.loading = false),
                 takeUntilDestroyed(this._destroyRef)
             )
             .subscribe({
                 next: (response) => {
-                    this.resultado = response.map(item => ({
-                        nome: item.nome,
-                        quantidade: parseFloat(item.quantidade),
-                        calorias: parseFloat(item.calorias),
-                        proteinas: parseFloat(item.proteinas),
-                        carboidratos: parseFloat(item.carboidratos),
-                        gordura: parseFloat(item.gordura),
-                        unidade_medida: item.unidade_medida,
-                        mensagem: item.mensagem
-                    }));
+                    this.resultado = response;
 
                     this._snackBar.open('Análise da imagem concluída com sucesso!', 'Fechar', {
                         duration: 3000,
@@ -355,6 +411,19 @@ export class AdicionarRefeicaoComponent implements OnInit {
                         duration: 5000,
                         panelClass: ['error-snackbar']
                     });
+                }
+            });
+    }
+
+    private carregarAlimentosDisponiveis(): void {
+        this._refeicoesService.listarAlimentos()
+            .pipe(takeUntilDestroyed(this._destroyRef))
+            .subscribe({
+                next: (alimentos) => {
+                    this.alimentosDisponiveis = alimentos;
+                },
+                error: (error) => {
+                    console.error('Erro ao carregar alimentos:', error);
                 }
             });
     }

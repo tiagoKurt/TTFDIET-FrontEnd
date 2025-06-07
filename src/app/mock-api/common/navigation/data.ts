@@ -50,7 +50,7 @@ export const defaultNavigation: FuseNavigationItem[] = [
                 children: [
                     {
                         id: 'refeicoes.adicionar',
-                        title: 'Adicionar Refeição',
+                        title: 'Refeição',
                         type: 'basic',
                         link: '/refeicoes/adicionar',
                     },

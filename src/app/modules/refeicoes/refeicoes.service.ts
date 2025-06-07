@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { RefeicaoRequest, AlimentoResponse, PlanoAlimentarResponse } from './refeicoes.types';
+import { RefeicaoRequest, AlimentoResponse, PlanoAlimentarResponse, RefeicaoResponse, AlimentoUpdate, AlimentoListItem, PlanoAlimentarDetalhado } from './refeicoes.types';
 
 @Injectable({
     providedIn: 'root'
@@ -10,10 +10,50 @@ export class RefeicoesService {
     private _httpClient = inject(HttpClient);
 
     private readonly REFEICAO_URL = 'https://agenteia.tigasolutions.com.br/refeicao';
-    private readonly PLANO_URL = 'https://agenteia.tigasolutions.com.br/plano';
+    private readonly PLANO_URL = 'http://localhost:8080/api/planos/gerar-e-salvar';
+    private readonly PLANOS_URL = 'http://localhost:8080/api/planos';
+    private readonly BACKEND_URL = 'http://localhost:8080/api/refeicoes';
+    private readonly ALIMENTOS_URL = 'http://localhost:8080/api/alimentos';
+    private readonly MINHAS_REFEICOES_URL = 'http://localhost:8080/api/minhas-refeicoes';
 
     gerarRefeicao(request: RefeicaoRequest): Observable<AlimentoResponse[]> {
         return this._httpClient.post<AlimentoResponse[]>(this.REFEICAO_URL, request);
+    }
+
+    gerarESalvarRefeicao(request: RefeicaoRequest): Observable<RefeicaoResponse> {
+        return this._httpClient.post<RefeicaoResponse>(`${this.BACKEND_URL}/gerar-e-salvar`, request);
+    }
+
+    atualizarAlimento(refeicaoId: number, alimentoUpdate: AlimentoUpdate): Observable<AlimentoResponse> {
+        return this._httpClient.put<AlimentoResponse>(`${this.BACKEND_URL}/${refeicaoId}/alimentos/${alimentoUpdate.id}`, alimentoUpdate);
+    }
+
+    listarAlimentos(): Observable<AlimentoListItem[]> {
+        return this._httpClient.get<AlimentoListItem[]>(`${this.ALIMENTOS_URL}/lista`);
+    }
+
+    listarPlanos(): Observable<PlanoAlimentarDetalhado[]> {
+        return this._httpClient.get<PlanoAlimentarDetalhado[]>(this.PLANOS_URL);
+    }
+
+    buscarPlano(id: number): Observable<PlanoAlimentarDetalhado> {
+        return this._httpClient.get<PlanoAlimentarDetalhado>(`${this.PLANOS_URL}/${id}`);
+    }
+
+    atualizarAlimentoPlano(planoId: number, refeicaoId: number, alimentoUpdate: AlimentoUpdate): Observable<AlimentoResponse> {
+        return this._httpClient.put<AlimentoResponse>(`${this.PLANOS_URL}/${planoId}/refeicoes/${refeicaoId}/alimentos/${alimentoUpdate.id}`, alimentoUpdate);
+    }
+
+    listarMinhasRefeicoes(): Observable<RefeicaoResponse[]> {
+        return this._httpClient.get<RefeicaoResponse[]>(this.MINHAS_REFEICOES_URL);
+    }
+
+    buscarMinhaRefeicao(id: number): Observable<RefeicaoResponse> {
+        return this._httpClient.get<RefeicaoResponse>(`${this.MINHAS_REFEICOES_URL}/${id}`);
+    }
+
+    atualizarAlimentoMinhasRefeicoes(refeicaoId: number, alimentoUpdate: AlimentoUpdate): Observable<AlimentoResponse> {
+        return this._httpClient.put<AlimentoResponse>(`${this.MINHAS_REFEICOES_URL}/${refeicaoId}/alimentos/${alimentoUpdate.id}`, alimentoUpdate);
     }
 
     gerarPlanoAlimentar(request: RefeicaoRequest): Observable<PlanoAlimentarResponse> {
