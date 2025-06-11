@@ -92,29 +92,48 @@
                             <div class="text-secondary">Peso atual</div>
                             <div class="text-2xl font-semibold">{{ progresso.pesoAtual }} kg</div>
                         </div>
-                        <div>
+                        <div *ngIf="progresso.pesoMeta !== null && progresso.pesoMeta !== undefined; else semMeta">
                             <div class="text-secondary">Meta</div>
-                            <div class="text-2xl font-semibold">{{ progresso.pesoMeta }} kg</div>
-                        </div>
-                        <div>
+                            <div class="text-2xl font-semibold">{{ progresso.pesoMeta }}</div>
+                          </div>
+                          <ng-template #semMeta>
+                            <div class="text-2xl font-semibold">Sem meta</div>
+                          </ng-template>
+                          
+                          <div *ngIf="progresso.porcentagemProgresso !== null && progresso.porcentagemProgresso !== undefined; else semProgresso">
                             <div class="text-secondary">Progresso</div>
-                            <div class="text-2xl font-semibold text-green-600">{{ progresso.porcentagemProgresso }}%</div>
-                        </div>
+                            <div class="text-2xl font-semibold">{{ progresso.porcentagemProgresso }}</div>
+                          </div>
+                          <ng-template #semProgresso>
+                            <div class="text-2xl font-semibold">Sem progresso</div>
+                          </ng-template>
+                          
                     </div>
 
                     <mat-divider class="my-6"></mat-divider>
+                    <div *ngIf="progresso.diferenca !== null && progresso.diferenca !== undefined; else semDiferenca">
 
                     <div class="font-medium mb-2">Faltam {{ progresso.diferenca }} kg para atingir sua meta</div>
+                    </div>
+                    <ng-template #semDiferenca>
+                        <div class="text-2md mb-3">Registre sua meta para analisar seu progresso</div>
+                      </ng-template>
                     <mat-progress-bar
                         [color]="'accent'"
                         [mode]="'determinate'"
                         [value]="progresso.porcentagemProgresso">
                     </mat-progress-bar>
-
+                    <button
+                    (click)="abrirModal()"
+                    mat-stroked-button
+                    color="primary"
+                    class="w-full mt-6">
+                    Cadastrar Meta
+                </button>
                     <button
                         mat-stroked-button
                         color="accent"
-                        class="w-full mt-6">
+                        class="w-full mt-3">
                         Ver Histórico Completo
                     </button>
                 </div>

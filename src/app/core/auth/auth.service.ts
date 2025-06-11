@@ -77,7 +77,13 @@ export class AuthService {
      * @param email
      */
     forgotPassword(email: string): Observable<any> {
-        return this._httpClient.post('api/auth/forgot-password', email);
+        console.log('aquiiii ', email);
+        this._apiService
+            .post('/auth/forgot-password', { email: email })
+            .subscribe((response: any) => {
+                console.log(response);
+            });
+        return of(true);
     }
 
     /**
@@ -87,6 +93,17 @@ export class AuthService {
      */
     resetPassword(password: string): Observable<any> {
         return this._httpClient.post('api/auth/reset-password', password);
+    }
+    verifyEmail(token: string): Observable<boolean> {
+        return this._apiService
+            .post('/auth/verify-email', {
+                tokenForgotPassword: token,
+            })
+            .pipe(
+                switchMap((response: { verified: boolean }) =>
+                    of(response.verified)
+                )
+            );
     }
 
     /**
@@ -157,11 +174,20 @@ export class AuthService {
      */
     signOut(): Observable<any> {
         // Remove the access token from the local storage
-        localStorage.removeItem('accessToken');
+        if (this._authenticated) {
+            this._apiService
+                .post('/auth/logoff', {
+                    sessionToken: this.sessionToken,
+                    accessToken: this.accessToken,
+                })
+                .subscribe((response: any) => {
+                    console.log(response);
+                });
+        }
 
         // Set the authenticated flag to false
         this._authenticated = false;
-
+        this.deleteTokens();
         // Return the observable
         return of(true);
     }

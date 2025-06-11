@@ -5,17 +5,15 @@ import {
     ReactiveFormsModule,
     UntypedFormBuilder,
     UntypedFormGroup,
-    Validators,
 } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { fuseAnimations } from '@fuse/animations';
 import { FuseAlertComponent, FuseAlertType } from '@fuse/components/alert';
-import { FuseValidators } from '@fuse/validators';
 import { AuthService } from 'app/core/auth/auth.service';
 import { finalize } from 'rxjs';
 
@@ -52,7 +50,9 @@ export class AuthResetPasswordComponent implements OnInit {
      */
     constructor(
         private _authService: AuthService,
-        private _formBuilder: UntypedFormBuilder
+        private _formBuilder: UntypedFormBuilder,
+        private _router: Router,
+        private _route: ActivatedRoute
     ) {}
 
     // -----------------------------------------------------------------------------------------------------
@@ -62,20 +62,28 @@ export class AuthResetPasswordComponent implements OnInit {
     /**
      * On init
      */
+
     ngOnInit(): void {
-        // Create the form
-        this.resetPasswordForm = this._formBuilder.group(
-            {
-                password: ['', Validators.required],
-                passwordConfirm: ['', Validators.required],
-            },
-            {
-                validators: FuseValidators.mustMatch(
-                    'password',
-                    'passwordConfirm'
-                ),
-            }
-        );
+        const token = this._route.snapshot.queryParamMap.get('token');
+
+        if (token) {
+            this._authService.verifyEmail(token).subscribe({
+                next: (response) => {
+                    // ✅ Redirecionar para onde quiser após sucesso
+                    if (!response) {
+                        this._router.navigate(['/home']);
+                    } else {
+                        this._router.navigate(['/reset-password'], {
+                            queryParams: { token: token },
+                        });
+                    }
+                },
+                error: () => {
+                    // ❌ Caso erro, redirecionar para página de erro ou exibir mensagem
+                    this._router.navigate(['/home']);
+                },
+            });
+        }
     }
 
     // -----------------------------------------------------------------------------------------------------
