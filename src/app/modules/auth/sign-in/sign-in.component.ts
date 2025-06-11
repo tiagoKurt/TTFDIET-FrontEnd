@@ -103,12 +103,14 @@ export class AuthSignInComponent implements OnInit {
         // Prepare login data
         const loginData = {
             email: formValues.email?.trim(),
-            senha: formValues.senha
+            senha: formValues.senha,
         };
 
         // Validate data before sending
         if (!loginData.email || !loginData.senha) {
-            this._notificationService.error('Por favor, preencha email e senha');
+            this._notificationService.error(
+                'Por favor, preencha email e senha'
+            );
             this.signInForm.enable();
             return;
         }
@@ -117,8 +119,10 @@ export class AuthSignInComponent implements OnInit {
         this._authService.signIn(loginData).subscribe({
             next: (response) => {
                 // Show success notification
-                this._notificationService.success('Login realizado com sucesso!');
-
+                this._notificationService.success(
+                    'Login realizado com sucesso!'
+                );
+                console.log(response);
                 // Check preRegister status and redirect accordingly
                 if (response.user.preRegister === true) {
                     this._router.navigate(['/home']);
@@ -131,7 +135,8 @@ export class AuthSignInComponent implements OnInit {
                 this.signInForm.enable();
 
                 // Show error notification
-                const errorMessage = error.error?.message || 'Email ou senha incorretos';
+                const errorMessage =
+                    error.error?.message || 'Email ou senha incorretos';
                 this._notificationService.error(errorMessage);
 
                 // Set the alert
@@ -142,7 +147,7 @@ export class AuthSignInComponent implements OnInit {
 
                 // Show the alert
                 this.showAlert = true;
-            }
+            },
         });
     }
 }

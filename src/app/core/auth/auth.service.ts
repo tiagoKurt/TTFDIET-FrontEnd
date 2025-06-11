@@ -2,10 +2,24 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthUtils } from 'app/core/auth/auth.utils';
-import { UserService } from 'app/core/user/user.service';
 import { ApiService } from 'app/core/services/api.service';
-import { SignUpRequest, SignInRequest, SignInResponse, User } from 'app/core/user/user.types';
-import { catchError, Observable, of, switchMap, throwError, tap, take } from 'rxjs';
+import { UserService } from 'app/core/user/user.service';
+import {
+    SignInRequest,
+    SignInResponse,
+    SignUpRequest,
+    User,
+} from 'app/core/user/user.types';
+import Cookies from 'js-cookie';
+import {
+    catchError,
+    Observable,
+    of,
+    switchMap,
+    take,
+    tap,
+    throwError,
+} from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -14,7 +28,7 @@ export class AuthService {
     private _userService = inject(UserService);
     private _apiService = inject(ApiService);
     private _router = inject(Router);
-
+    private _loginRealizado: boolean = false;
     // -----------------------------------------------------------------------------------------------------
     // @ Accessors
     // -----------------------------------------------------------------------------------------------------
@@ -22,12 +36,35 @@ export class AuthService {
     /**
      * Setter & getter for access token
      */
+
     set accessToken(token: string) {
-        localStorage.setItem('accessToken', token);
+        Cookies.set('accessToken', token, {
+            expires: 7,
+            path: '/',
+            secure: true,
+            sameSite: 'Strict',
+        });
     }
 
     get accessToken(): string {
-        return localStorage.getItem('accessToken') ?? '';
+        return Cookies.get('accessToken') ?? '';
+    }
+    set sessionToken(token: string) {
+        Cookies.set('sessionToken', token, {
+            expires: 7,
+            path: '/',
+            secure: true,
+            sameSite: 'Strict',
+        });
+    }
+
+    get sessionToken(): string {
+        return Cookies.get('sessionToken') ?? '';
+    }
+
+    deleteTokens(): void {
+        Cookies.remove('accessToken', { path: '/' });
+        Cookies.remove('sessionToken', { path: '/' });
     }
 
     // -----------------------------------------------------------------------------------------------------
@@ -62,23 +99,24 @@ export class AuthService {
         if (this._authenticated) {
             return throwError('Usuário já está logado.');
         }
-
+        this._loginRealizado = false;
         return this._apiService.post<any>('/auth/login', credentials).pipe(
             tap((response: any) => {
                 // Store the access token in the local storage
                 this.accessToken = response.token;
+                this.sessionToken = response.sessionToken;
 
                 // Set the authenticated flag to true
                 this._authenticated = true;
             }),
             switchMap((response: any) => {
                 return this._userService.getProfile().pipe(
-                    tap((user: User) => {
-                    }),
+                    tap((user: User) => {}),
                     switchMap((user: User) => {
+                        this._loginRealizado = true;
                         return of({
                             token: response.token,
-                            user: user
+                            user: user,
                         } as SignInResponse);
                     })
                 );
@@ -101,14 +139,14 @@ export class AuthService {
             switchMap((user: User) => {
                 if (!user) {
                     this._authenticated = false;
-                    localStorage.removeItem('accessToken');
+                    this.deleteTokens();
                     return of(false);
                 }
                 return of(true);
             }),
             catchError(() => {
                 this._authenticated = false;
-                localStorage.removeItem('accessToken');
+                this.deleteTokens();
                 return of(false);
             })
         );
@@ -155,14 +193,23 @@ export class AuthService {
     check(): Observable<boolean> {
         // Check if the user is logged in
         if (this._authenticated) {
-            return of(true);
+            if (this._loginRealizado) {
+                if (this.accessToken && this.sessionToken) {
+                    this._apiService
+                        .post('/auth/verifySession', {
+                            sessionToken: this.sessionToken,
+                            accessToken: this.accessToken,
+                        })
+                        .subscribe((response: any) => {
+                            console.log(response);
+                            if (response.logado !== true) {
+                                this.deleteTokens();
+                            }
+                            this._authenticated = response.logado;
+                        });
+                }
+            }
         }
-
-        // Check the access token availability
-        if (!this.accessToken) {
-            return of(false);
-        }
-
         // Check the access token expire date
         if (AuthUtils.isTokenExpired(this.accessToken)) {
             localStorage.removeItem('accessToken');
