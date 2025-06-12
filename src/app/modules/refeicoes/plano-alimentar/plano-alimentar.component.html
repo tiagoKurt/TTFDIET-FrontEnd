@@ -157,12 +157,38 @@
                         <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
                             Seu Plano Alimentar Semanal
                         </h2>
-                        <button mat-raised-button
-                                color="accent"
-                                (click)="novoPlano()">
-                            <mat-icon>refresh</mat-icon>
-                            Novo Plano
-                        </button>
+                        <div class="flex gap-3">
+                            <div *ngIf="!planoAceito" class="flex gap-2">
+                                <button mat-raised-button
+                                        color="primary"
+                                        (click)="aceitarPlano()"
+                                        class="bg-green-600 hover:bg-green-700 text-white">
+                                    <mat-icon>check_circle</mat-icon>
+                                    Aceitar Plano
+                                </button>
+                                <button mat-raised-button
+                                        color="warn"
+                                        (click)="rejeitarPlano()"
+                                        [disabled]="loading">
+                                    <mat-spinner *ngIf="loading" diameter="16" class="mr-2"></mat-spinner>
+                                    <mat-icon *ngIf="!loading">cancel</mat-icon>
+                                    {{ loading ? 'Rejeitando...' : 'Rejeitar Plano' }}
+                                </button>
+                            </div>
+
+                            <div *ngIf="planoAceito" class="flex items-center gap-2">
+                                <div class="flex items-center gap-2 bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-200 px-4 py-2 rounded-lg">
+                                    <mat-icon class="text-green-600 dark:text-green-400">check_circle</mat-icon>
+                                    <span class="font-medium">Plano Aceito</span>
+                                </div>
+                                <button mat-raised-button
+                                        color="accent"
+                                        (click)="novoPlano()">
+                                    <mat-icon>refresh</mat-icon>
+                                    Novo Plano
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900 dark:to-pink-900 p-4 rounded-lg">
@@ -330,13 +356,22 @@
                                         <span class="text-gray-500">{{ plano.maximoCaloriasPorRefeicaoUsuario }} cal/refeição</span>
                                     </div>
                                 </div>
+                                <div class="flex gap-2 ml-4">
                                 <button mat-raised-button
                                         color="primary"
-                                        (click)="editarPlano(plano.id)"
-                                        class="ml-4">
+                                            (click)="editarPlano(plano.id)">
                                     <mat-icon>edit</mat-icon>
                                     Editar
                                 </button>
+                                    <button mat-raised-button
+                                            color="warn"
+                                            (click)="rejeitarRefeicaoPlano(plano.id)"
+                                            [disabled]="loading">
+                                        <mat-spinner *ngIf="loading" diameter="16" class="mr-2"></mat-spinner>
+                                        <mat-icon *ngIf="!loading">delete</mat-icon>
+                                        {{ loading ? 'Rejeitando...' : 'Rejeitar' }}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>

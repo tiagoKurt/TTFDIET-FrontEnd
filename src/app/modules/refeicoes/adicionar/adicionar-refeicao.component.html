@@ -260,12 +260,38 @@
                 <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
                     Sua Refeição Personalizada
                 </h2>
-                <button mat-raised-button
-                        color="accent"
-                        (click)="novaRefeicao()">
-                    <mat-icon>refresh</mat-icon>
-                    Nova Refeição
-                </button>
+                <div class="flex gap-3">
+                    <div *ngIf="!refeicaoAceita" class="flex gap-2">
+                        <button mat-raised-button
+                                color="primary"
+                                (click)="aceitarRefeicao()"
+                                class="bg-green-600 hover:bg-green-700 text-white">
+                            <mat-icon>check_circle</mat-icon>
+                            Aceitar
+                        </button>
+                        <button mat-raised-button
+                                color="warn"
+                                (click)="rejeitarRefeicao()"
+                                [disabled]="loading">
+                            <mat-spinner *ngIf="loading" diameter="16" class="mr-2"></mat-spinner>
+                            <mat-icon *ngIf="!loading">cancel</mat-icon>
+                            {{ loading ? 'Rejeitando...' : 'Rejeitar' }}
+                        </button>
+                    </div>
+
+                    <div *ngIf="refeicaoAceita" class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-200 px-4 py-2 rounded-lg">
+                            <mat-icon class="text-green-600 dark:text-green-400">check_circle</mat-icon>
+                            <span class="font-medium">Refeição Aceita</span>
+                        </div>
+                        <button mat-raised-button
+                                color="accent"
+                                (click)="novaRefeicao()">
+                            <mat-icon>refresh</mat-icon>
+                            Nova Refeição
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <!-- Resumo Nutricional -->

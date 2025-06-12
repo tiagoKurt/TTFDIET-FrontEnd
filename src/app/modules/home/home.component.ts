@@ -9,7 +9,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
 import { UserService } from 'app/core/user/user.service';
-import { CadastrarMetaDialogComponent } from './cadastrar-meta-dialog/cadastrar-meta-dialog.component';
+// import { CadastrarMetaDialogComponent } from './cadastrar-meta-dialog/cadastrar-meta-dialog.component';
 
 interface RefeicaoSugerida {
     nome: string;
@@ -148,9 +148,9 @@ export class HomeComponent implements OnInit {
 
     registrarRefeicao(): void {}
 
-    abrirModal() {
-        this.dialog.open(CadastrarMetaDialogComponent, {
-            width: '400px',
-        });
-    }
+    // abrirModal() {
+    //     this.dialog.open(CadastrarMetaDialogComponent, {
+    //         width: '400px',
+    //     });
+    // }
 }

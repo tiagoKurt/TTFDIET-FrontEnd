@@ -24,6 +24,18 @@ export class RefeicoesService {
         return this._httpClient.post<RefeicaoResponse>(`${this.BACKEND_URL}/gerar-e-salvar`, request);
     }
 
+    excluirRefeicao(refeicaoId: number): Observable<void> {
+        return this._httpClient.delete<void>(`${this.BACKEND_URL}/${refeicaoId}`);
+    }
+
+    excluirMinhaRefeicao(refeicaoId: number): Observable<void> {
+        return this._httpClient.delete<void>(`${this.MINHAS_REFEICOES_URL}/${refeicaoId}`);
+    }
+
+    excluirPlano(planoId: number): Observable<void> {
+        return this._httpClient.delete<void>(`${this.PLANOS_URL}/${planoId}`);
+    }
+
     atualizarAlimento(refeicaoId: number, alimentoUpdate: AlimentoUpdate): Observable<AlimentoResponse> {
         return this._httpClient.put<AlimentoResponse>(`${this.BACKEND_URL}/${refeicaoId}/alimentos/${alimentoUpdate.id}`, alimentoUpdate);
     }

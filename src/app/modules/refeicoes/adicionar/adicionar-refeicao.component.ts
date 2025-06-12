@@ -18,6 +18,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { HttpClient } from '@angular/common/http';
 import { RefeicoesService } from '../refeicoes.service';
 import { UserService } from 'app/core/user/user.service';
+import { NotificationService } from 'app/core/services/notification.service';
+import { FuseConfirmationService } from '@fuse/services/confirmation';
 import { TipoRefeicao, TipoObjetivo, AlimentoResponse, RefeicaoRequest, RefeicaoResponse, AlimentoListItem } from '../refeicoes.types';
 import { User } from 'app/core/user/user.types';
 import { finalize } from 'rxjs';
@@ -50,6 +52,8 @@ export class AdicionarRefeicaoComponent implements OnInit {
     private _refeicoesService = inject(RefeicoesService);
     private _userService = inject(UserService);
     private _snackBar = inject(MatSnackBar);
+    private _notificationService = inject(NotificationService);
+    private _fuseConfirmationService = inject(FuseConfirmationService);
     private _destroyRef = inject(DestroyRef);
     private _httpClient = inject(HttpClient);
     private _dialog = inject(MatDialog);
@@ -60,6 +64,7 @@ export class AdicionarRefeicaoComponent implements OnInit {
     resultado: RefeicaoResponse | null = null;
     alimentosDisponiveis: AlimentoListItem[] = [];
     editandoAlimento: AlimentoResponse | null = null;
+    refeicaoAceita = false;
 
     metodoGeracao: 'preferencias' | 'imagem' = 'preferencias';
     selectedImage: File | null = null;
@@ -309,6 +314,7 @@ export class AdicionarRefeicaoComponent implements OnInit {
 
     novaRefeicao(): void {
         this.resultado = null;
+        this.refeicaoAceita = false;
         this.form.reset();
         this.form.patchValue({
             maximo_calorias_por_refeicao: 900
@@ -424,6 +430,76 @@ export class AdicionarRefeicaoComponent implements OnInit {
                 },
                 error: (error) => {
                     console.error('Erro ao carregar alimentos:', error);
+                }
+            });
+    }
+
+    aceitarRefeicao(): void {
+        if (!this.resultado) return;
+
+        this.refeicaoAceita = true;
+        this._notificationService.success('Refeição aceita com sucesso! 🎉', 4000);
+    }
+
+    rejeitarRefeicao(): void {
+        if (!this.resultado) return;
+
+        const dialogRef = this._fuseConfirmationService.open({
+            title: 'Rejeitar refeição',
+            message: 'Tem certeza que deseja rejeitar esta refeição? <span class="font-medium">Esta ação não pode ser desfeita!</span>',
+            icon: {
+                show: true,
+                name: 'heroicons_outline:exclamation-triangle',
+                color: 'warn'
+            },
+            actions: {
+                confirm: {
+                    show: true,
+                    label: 'Rejeitar',
+                    color: 'warn'
+                },
+                cancel: {
+                    show: true,
+                    label: 'Cancelar'
+                }
+            },
+            dismissible: true
+        });
+
+        dialogRef.afterClosed().subscribe((result) => {
+            if (result === 'confirmed') {
+                this.excluirRefeicao();
+            }
+        });
+    }
+
+    private excluirRefeicao(): void {
+        if (!this.resultado) return;
+
+        this.loading = true;
+
+        this._refeicoesService.excluirRefeicao(this.resultado.id)
+            .pipe(
+                finalize(() => this.loading = false),
+                takeUntilDestroyed(this._destroyRef)
+            )
+            .subscribe({
+                next: () => {
+                    this._notificationService.error('Refeição rejeitada e excluída 🗑️', 4000);
+                    this.resultado = null;
+                    this.refeicaoAceita = false;
+
+                    // Limpar os campos de input
+                    this.form.reset();
+                    this.form.patchValue({
+                        maximo_calorias_por_refeicao: 900
+                    });
+                    this.selectedImage = null;
+                    this.imagePreview = null;
+                },
+                error: (error) => {
+                    console.error('Erro ao excluir refeição:', error);
+                    this._notificationService.error('Erro ao excluir refeição. Tente novamente.');
                 }
             });
     }

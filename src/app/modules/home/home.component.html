@@ -99,7 +99,7 @@
                           <ng-template #semMeta>
                             <div class="text-2xl font-semibold">Sem meta</div>
                           </ng-template>
-                          
+
                           <div *ngIf="progresso.porcentagemProgresso !== null && progresso.porcentagemProgresso !== undefined; else semProgresso">
                             <div class="text-secondary">Progresso</div>
                             <div class="text-2xl font-semibold">{{ progresso.porcentagemProgresso }}</div>
@@ -107,7 +107,7 @@
                           <ng-template #semProgresso>
                             <div class="text-2xl font-semibold">Sem progresso</div>
                           </ng-template>
-                          
+
                     </div>
 
                     <mat-divider class="my-6"></mat-divider>
@@ -123,13 +123,13 @@
                         [mode]="'determinate'"
                         [value]="progresso.porcentagemProgresso">
                     </mat-progress-bar>
-                    <button
-                    (click)="abrirModal()"
-                    mat-stroked-button
-                    color="primary"
-                    class="w-full mt-6">
-                    Cadastrar Meta
-                </button>
+                    <!-- <button
+                        (click)="abrirModal()"
+                        mat-stroked-button
+                        color="primary"
+                        class="w-full mt-6">
+                        Cadastrar Meta
+                    </button> -->
                     <button
                         mat-stroked-button
                         color="accent"

@@ -16,6 +16,8 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { RefeicoesService } from '../refeicoes.service';
 import { UserService } from 'app/core/user/user.service';
+import { NotificationService } from 'app/core/services/notification.service';
+import { FuseConfirmationService } from '@fuse/services/confirmation';
 import { TipoRefeicao, TipoObjetivo, AlimentoResponse, RefeicaoRequest, PlanoAlimentarResponse, PlanoAlimentarDetalhado, AlimentoListItem, AlimentoUpdate } from '../refeicoes.types';
 import { User } from 'app/core/user/user.types';
 import { finalize } from 'rxjs';
@@ -46,6 +48,8 @@ export class PlanoAlimentarComponent implements OnInit {
     private _refeicoesService = inject(RefeicoesService);
     private _userService = inject(UserService);
     private _snackBar = inject(MatSnackBar);
+    private _notificationService = inject(NotificationService);
+    private _fuseConfirmationService = inject(FuseConfirmationService);
     private _destroyRef = inject(DestroyRef);
 
     form: FormGroup;
@@ -53,6 +57,7 @@ export class PlanoAlimentarComponent implements OnInit {
     loading = false;
     resultado: PlanoAlimentarResponse | null = null;
     planoSemanal: { [refeicao: string]: { [dia: string]: AlimentoResponse[] } } | null = null;
+    planoAceito = false;
 
     planosSalvos: PlanoAlimentarDetalhado[] = [];
     planoSelecionado: PlanoAlimentarDetalhado | null = null;
@@ -309,6 +314,7 @@ export class PlanoAlimentarComponent implements OnInit {
     novoPlano(): void {
         this.resultado = null;
         this.planoSemanal = null;
+        this.planoAceito = false;
         this.form.reset();
         this.form.patchValue({
             maximo_calorias_por_refeicao: 900
@@ -492,5 +498,115 @@ export class PlanoAlimentarComponent implements OnInit {
         this.planoSelecionado = null;
         this.modoVisualizacao = 'gerar';
         this.cancelarEdicao();
+    }
+
+    aceitarPlano(): void {
+        if (!this.resultado) return;
+
+        this.planoAceito = true;
+        this._notificationService.success('Plano alimentar aceito com sucesso! 🎉', 4000);
+    }
+
+    rejeitarPlano(): void {
+        if (!this.resultado) return;
+
+        const dialogRef = this._fuseConfirmationService.open({
+            title: 'Rejeitar plano alimentar',
+            message: 'Tem certeza que deseja rejeitar este plano alimentar? <span class="font-medium">Esta ação não pode ser desfeita!</span>',
+            icon: {
+                show: true,
+                name: 'heroicons_outline:exclamation-triangle',
+                color: 'warn'
+            },
+            actions: {
+                confirm: {
+                    show: true,
+                    label: 'Rejeitar',
+                    color: 'warn'
+                },
+                cancel: {
+                    show: true,
+                    label: 'Cancelar'
+                }
+            },
+            dismissible: true
+        });
+
+        dialogRef.afterClosed().subscribe((result) => {
+            if (result === 'confirmed') {
+                this.excluirPlano();
+            }
+        });
+    }
+
+    rejeitarRefeicaoPlano(planoId: number): void {
+        const dialogRef = this._fuseConfirmationService.open({
+            title: 'Rejeitar refeição',
+            message: 'Tem certeza que deseja rejeitar esta refeição do plano? <span class="font-medium">Esta ação não pode ser desfeita!</span>',
+            icon: {
+                show: true,
+                name: 'heroicons_outline:exclamation-triangle',
+                color: 'warn'
+            },
+            actions: {
+                confirm: {
+                    show: true,
+                    label: 'Rejeitar',
+                    color: 'warn'
+                },
+                cancel: {
+                    show: true,
+                    label: 'Cancelar'
+                }
+            },
+            dismissible: true
+        });
+
+        dialogRef.afterClosed().subscribe((result) => {
+            if (result === 'confirmed') {
+                this.excluirPlanoSalvo(planoId);
+            }
+        });
+    }
+
+    private excluirPlano(): void {
+        this.loading = true;
+
+        // Como é um plano gerado mas não salvo ainda, apenas removemos da visualização
+        this._notificationService.error('Plano alimentar rejeitado e descartado 🗑️', 4000);
+        this.resultado = null;
+        this.planoSemanal = null;
+        this.planoAceito = false;
+
+        // Limpar os campos de input
+        this.form.reset();
+        this.form.patchValue({
+            maximo_calorias_por_refeicao: 900
+        });
+
+        this.loading = false;
+    }
+
+    private excluirPlanoSalvo(planoId: number): void {
+        this.loading = true;
+
+        this._refeicoesService.excluirPlano(planoId)
+            .pipe(
+                finalize(() => this.loading = false),
+                takeUntilDestroyed(this._destroyRef)
+            )
+            .subscribe({
+                next: () => {
+                    this._notificationService.error('Refeição rejeitada e excluída 🗑️', 4000);
+                    this.carregarPlanosSalvos(); // Recarrega a lista
+                    if (this.planoSelecionado?.id === planoId) {
+                        this.planoSelecionado = null;
+                    }
+                },
+                error: (error) => {
+                    console.error('Erro ao excluir plano:', error);
+                    this._notificationService.error('Erro ao excluir refeição. Tente novamente.');
+                }
+            });
     }
 }
