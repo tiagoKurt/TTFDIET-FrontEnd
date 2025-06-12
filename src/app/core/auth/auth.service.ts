@@ -91,8 +91,15 @@ export class AuthService {
      *
      * @param password
      */
-    resetPassword(password: string): Observable<any> {
-        return this._httpClient.post('api/auth/reset-password', password);
+    changePassword(token: string, password: string): Observable<any> {
+        const payloadChangePassword = {
+            token: token,
+            password: password,
+        };
+        return this._apiService.patch(
+            '/auth/change-password',
+            payloadChangePassword
+        );
     }
     verifyEmail(token: string): Observable<boolean> {
         return this._apiService

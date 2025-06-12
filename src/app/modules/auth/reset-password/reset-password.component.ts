@@ -5,6 +5,8 @@ import {
     ReactiveFormsModule,
     UntypedFormBuilder,
     UntypedFormGroup,
+    ValidationErrors,
+    Validators,
 } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -43,11 +45,8 @@ export class AuthResetPasswordComponent implements OnInit {
         message: '',
     };
     resetPasswordForm: UntypedFormGroup;
-    showAlert: boolean = false;
+    showAlert = false;
 
-    /**
-     * Constructor
-     */
     constructor(
         private _authService: AuthService,
         private _formBuilder: UntypedFormBuilder,
@@ -55,86 +54,85 @@ export class AuthResetPasswordComponent implements OnInit {
         private _route: ActivatedRoute
     ) {}
 
-    // -----------------------------------------------------------------------------------------------------
-    // @ Lifecycle hooks
-    // -----------------------------------------------------------------------------------------------------
-
-    /**
-     * On init
-     */
-
     ngOnInit(): void {
+        // Inicializa o formulário corretamente aqui 👇
+        this.resetPasswordForm = this._formBuilder.group(
+            {
+                password: ['', [Validators.required]],
+                passwordConfirm: ['', [Validators.required]],
+            },
+            {
+                validators: [this.mustMatch('password', 'passwordConfirm')],
+            }
+        );
+
+        // Captura token, se houver
         const token = this._route.snapshot.queryParamMap.get('token');
 
         if (token) {
             this._authService.verifyEmail(token).subscribe({
                 next: (response) => {
-                    // ✅ Redirecionar para onde quiser após sucesso
                     if (!response) {
                         this._router.navigate(['/home']);
-                    } else {
-                        this._router.navigate(['/reset-password'], {
-                            queryParams: { token: token },
-                        });
                     }
                 },
                 error: () => {
-                    // ❌ Caso erro, redirecionar para página de erro ou exibir mensagem
                     this._router.navigate(['/home']);
                 },
             });
         }
     }
 
-    // -----------------------------------------------------------------------------------------------------
-    // @ Public methods
-    // -----------------------------------------------------------------------------------------------------
-
-    /**
-     * Reset password
-     */
     resetPassword(): void {
-        // Return if the form is invalid
-        if (this.resetPasswordForm.invalid) {
-            return;
-        }
+        if (this.resetPasswordForm.invalid) return;
 
-        // Disable the form
         this.resetPasswordForm.disable();
-
-        // Hide the alert
         this.showAlert = false;
-
-        // Send the request to the server
+        const token = this._route.snapshot.queryParamMap.get('token');
         this._authService
-            .resetPassword(this.resetPasswordForm.get('password').value)
+            .changePassword(token, this.resetPasswordForm.get('password').value)
             .pipe(
                 finalize(() => {
-                    // Re-enable the form
                     this.resetPasswordForm.enable();
-
-                    // Reset the form
                     this.resetPasswordNgForm.resetForm();
-
-                    // Show the alert
                     this.showAlert = true;
                 })
             )
-            .subscribe(
-                (response) => {
-                    // Set the alert
+            .subscribe({
+                next: () => {
                     this.alert = {
                         type: 'success',
                         message: 'Your password has been reset.',
                     };
                 },
-                (response) => {
-                    // Set the alert
+                error: () => {
                     this.alert = {
                         type: 'error',
                         message: 'Something went wrong, please try again.',
                     };
-                }
-            );
+                },
+            });
+    }
+
+    /**
+     * Validador customizado para verificar se password === passwordConfirm
+     */
+    private mustMatch(controlName: string, matchingControlName: string) {
+        return (formGroup: UntypedFormGroup): ValidationErrors | null => {
+            const control = formGroup.controls[controlName];
+            const matchingControl = formGroup.controls[matchingControlName];
+
+            if (matchingControl.errors && !matchingControl.errors.mustMatch) {
+                return null;
+            }
+
+            if (control.value !== matchingControl.value) {
+                matchingControl.setErrors({ mustMatch: true });
+            } else {
+                matchingControl.setErrors(null);
+            }
+
+            return null;
+        };
     }
 }
