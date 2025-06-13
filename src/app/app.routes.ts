@@ -66,7 +66,8 @@ export const appRoutes: Route[] = [
             {path: 'profile', loadChildren: () => import('app/modules/User/profile/profile.routes')},
             {path: 'refeicoes/adicionar', loadChildren: () => import('app/modules/refeicoes/adicionar/adicionar-refeicao.routes')},
             {path: 'refeicoes/historico', loadChildren: () => import('app/modules/refeicoes/plano-alimentar/plano-alimentar.routes')},
-            {path: 'planejamento/minhas-refeicoes', loadChildren: () => import('app/modules/refeicoes/minhas-refeicoes/minhas-refeicoes.routes')}
+            {path: 'planejamento/minhas-refeicoes', loadChildren: () => import('app/modules/refeicoes/minhas-refeicoes/minhas-refeicoes.routes')},
+            {path: 'planejamento', loadChildren: () => import('app/modules/planejamento/planejamento.routes')}
         ]
     }
 ];

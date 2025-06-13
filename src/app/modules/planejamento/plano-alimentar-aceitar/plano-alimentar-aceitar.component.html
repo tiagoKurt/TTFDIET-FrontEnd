@@ -1,0 +1,387 @@
+<div class="flex flex-col w-full max-w-6xl mx-auto space-y-6">
+    <!-- Cabeçalho -->
+    <div class="text-center">
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Plano Alimentar Semanal</h2>
+        <p class="text-gray-600 dark:text-gray-400 mt-2">
+            Gere um plano alimentar completo para toda a semana e aceite as refeições que desejar
+        </p>
+    </div>
+
+    <!-- Navegação de Modos -->
+    <div class="flex justify-center mb-6 gap-3">
+        <button mat-raised-button
+                [color]="modoVisualizacao === 'gerar' ? 'primary' : 'accent'"
+                (click)="voltarParaListaPlanos()">
+            <mat-icon>add_circle</mat-icon>
+            Gerar Novo Plano
+        </button>
+        <button mat-raised-button
+                [color]="modoVisualizacao === 'historico' ? 'primary' : 'accent'"
+                (click)="modoVisualizacao = 'historico'; carregarPlanosSalvos()">
+            <mat-icon>history</mat-icon>
+            Histórico de Planos
+        </button>
+    </div>
+
+    <!-- Histórico de Planos -->
+    <div *ngIf="modoVisualizacao === 'historico' && !planoSelecionado" class="space-y-4">
+        <mat-card class="p-6">
+            <div class="flex items-center gap-3 mb-4">
+                <mat-icon class="text-2xl text-purple-600">history</mat-icon>
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Planos Salvos</h3>
+            </div>
+
+            <div *ngIf="planosSalvos.length === 0" class="text-center py-8">
+                <mat-icon class="text-6xl text-gray-400 mb-4">folder_open</mat-icon>
+                <p class="text-gray-600 dark:text-gray-400">Nenhum plano salvo ainda.</p>
+                <p class="text-sm text-gray-500 dark:text-gray-500 mt-2">
+                    Gere um novo plano para começar!
+                </p>
+            </div>
+
+            <div *ngIf="planosSalvos.length > 0" class="grid gap-4">
+                <div *ngFor="let plano of planosSalvos"
+                     class="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900 dark:to-purple-900 p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
+
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <h4 class="font-semibold text-gray-900 dark:text-white">
+                                Plano {{ plano.objetivo }}
+                            </h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                Criado em {{ plano.dataCriacao | date:'dd/MM/yyyy' }} às {{ plano.dataCriacao | date:'HH:mm' }}
+                            </p>
+                            <p class="text-sm text-gray-500 dark:text-gray-500 mt-1">
+                                {{ plano.refeicoes.length }} refeição(ões) • {{ plano.maximoCaloriasPorRefeicaoUsuario }} kcal máx/refeição
+                            </p>
+                        </div>
+
+                        <div class="flex gap-2 ml-4">
+                            <button mat-raised-button
+                                    color="primary"
+                                    (click)="visualizarPlanoSalvo(plano)"
+                                    class="min-w-0">
+                                <mat-icon>visibility</mat-icon>
+                                Visualizar
+                            </button>
+                            <button mat-icon-button
+                                    color="warn"
+                                    (click)="excluirPlanoSalvo(plano.id)"
+                                    matTooltip="Excluir plano">
+                                <mat-icon>delete</mat-icon>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </mat-card>
+    </div>
+
+    <!-- Formulário de Geração (se não há plano gerado) -->
+    <div *ngIf="!planoGerado && modoVisualizacao === 'gerar'">
+        <mat-card class="p-6">
+            <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-6">
+                <!-- Objetivo -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <mat-form-field appearance="outline" class="w-full">
+                        <mat-label>Objetivo</mat-label>
+                        <mat-select formControlName="objetivo" required>
+                            <mat-option *ngFor="let objetivo of objetivos" [value]="objetivo.value">
+                                {{ objetivo.label }}
+                            </mat-option>
+                        </mat-select>
+                        <mat-error *ngIf="form.get('objetivo')?.hasError('required')">
+                            Selecione um objetivo
+                        </mat-error>
+                    </mat-form-field>
+
+                    <!-- Máximo de Calorias -->
+                    <mat-form-field appearance="outline" class="w-full">
+                        <mat-label>Máximo de Calorias por Refeição</mat-label>
+                        <input matInput
+                               type="number"
+                               formControlName="maximo_calorias_por_refeicao"
+                               min="100"
+                               max="10000"
+                               required>
+                        <mat-hint>Entre 100 e 10.000 calorias</mat-hint>
+                        <mat-error *ngIf="form.get('maximo_calorias_por_refeicao')?.hasError('required')">
+                            Informe o máximo de calorias
+                        </mat-error>
+                    </mat-form-field>
+                </div>
+
+                <!-- Preferências Predefinidas -->
+                <div *ngIf="preferenciasPadrao.length > 0" class="space-y-3">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                        Preferências Sugeridas
+                    </h3>
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                        <mat-checkbox
+                            *ngFor="let preferencia of preferenciasPadrao; let i = index"
+                            [checked]="preferenciasPredefinidas.at(i)?.value"
+                            (change)="preferenciasPredefinidas.at(i).setValue($event.checked)"
+                            class="text-sm">
+                            {{ preferencia }}
+                        </mat-checkbox>
+                    </div>
+                </div>
+
+                <!-- Adicionar Preferência Personalizada -->
+                <div class="space-y-3">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                        Adicionar Preferência Personalizada
+                    </h3>
+                    <div class="flex gap-3">
+                        <mat-form-field appearance="outline" class="flex-1">
+                            <mat-label>Nova preferência</mat-label>
+                            <input matInput
+                                   formControlName="nova_preferencia"
+                                   placeholder="Ex: Salmão grelhado"
+                                   (keydown.enter)="adicionarPreferenciaPersonalizada(); $event.preventDefault()">
+                        </mat-form-field>
+                        <button mat-raised-button
+                                type="button"
+                                color="primary"
+                                (click)="adicionarPreferenciaPersonalizada()"
+                                [disabled]="!form.get('nova_preferencia')?.value?.trim()">
+                            <mat-icon>add</mat-icon>
+                            Adicionar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Preferências Personalizadas Adicionadas -->
+                <div *ngIf="preferenciasPersonalizadas.length > 0" class="space-y-3">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                        Suas Preferências Personalizadas
+                    </h3>
+                    <div class="flex flex-wrap gap-2">
+                        <mat-chip-set>
+                            <mat-chip *ngFor="let preferencia of preferenciasPersonalizadas.controls; let i = index"
+                                      (removed)="removerPreferenciaPersonalizada(i)"
+                                      class="bg-primary-100 text-primary-800 dark:bg-primary-800 dark:text-primary-100">
+                                {{ preferencia.value }}
+                                <button matChipRemove>
+                                    <mat-icon>cancel</mat-icon>
+                                </button>
+                            </mat-chip>
+                        </mat-chip-set>
+                    </div>
+                </div>
+
+                <!-- Botão de Submit -->
+                <div class="flex justify-center">
+                    <button mat-raised-button
+                            type="submit"
+                            color="primary"
+                            class="px-8 py-2"
+                            [disabled]="!form.valid || loading">
+                        <mat-spinner *ngIf="loading" diameter="20" class="mr-2"></mat-spinner>
+                        <mat-icon *ngIf="!loading">calendar_month</mat-icon>
+                        {{ loading ? 'Gerando Plano...' : 'Gerar Plano Semanal' }}
+                    </button>
+                </div>
+            </form>
+        </mat-card>
+    </div>
+
+    <!-- Plano Gerado -->
+    <div *ngIf="planoGerado && diasPlano.length > 0 && (modoVisualizacao === 'gerar' || modoVisualizacao === 'visualizar')" class="space-y-6">
+        <!-- Estatísticas Gerais -->
+        <mat-card class="p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white">
+                    Seu Plano Alimentar Semanal
+                </h3>
+                <div class="flex gap-3">
+                    <button mat-raised-button
+                            color="warn"
+                            (click)="excluirPlanoCompleto()">
+                        <mat-icon>delete</mat-icon>
+                        Excluir Plano
+                    </button>
+                    <button mat-raised-button
+                            color="accent"
+                            (click)="novoPlano()">
+                        <mat-icon>refresh</mat-icon>
+                        Novo Plano
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900 dark:to-pink-900 p-4 rounded-lg">
+                <h4 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                    Estatísticas da Semana
+                </h4>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                            {{ getTotalCaloriasSemana().toFixed(0) }}
+                        </div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">Total de Calorias</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                            {{ diasPlano.length }}
+                        </div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">Dias Planejados</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-green-600 dark:text-green-400">
+                            {{ (getTotalCaloriasSemana() / diasPlano.length).toFixed(0) }}
+                        </div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">Média por Dia</div>
+                    </div>
+                </div>
+            </div>
+        </mat-card>
+
+        <!-- Lista de Dias -->
+        <div class="space-y-4">
+            <div *ngFor="let dia of diasPlano; let diaIndex = index"
+                 class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden {{ getCorCard(dia.totalCalorias) }}">
+
+                <!-- Cabeçalho do Dia -->
+                <div class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-6">
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center gap-4">
+                            <div class="bg-white/20 p-3 rounded-full">
+                                <mat-icon class="text-2xl">today</mat-icon>
+                            </div>
+                            <div>
+                                <h4 class="text-xl font-semibold">{{ dia.diaSemana }}</h4>
+                                <p class="text-sm opacity-90">{{ dia.refeicoes.length }} refeição(ões)</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3">
+                            <div class="text-right">
+                                <div class="text-lg font-bold">{{ dia.totalCalorias.toFixed(0) }} kcal</div>
+                                <div class="text-sm opacity-75">Total do dia</div>
+                            </div>
+
+                            <div class="flex flex-col gap-2">
+                                <button mat-raised-button
+                                        color="accent"
+                                        (click)="aceitarDiaCompleto(diaIndex)"
+                                        [disabled]="dia.aceito"
+                                        class="bg-green-600 hover:bg-green-700 text-white">
+                                    <mat-icon>check_circle</mat-icon>
+                                    {{ dia.aceito ? 'Dia Aceito' : 'Aceitar Dia' }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lista de Refeições -->
+                <div class="p-6 space-y-4">
+                    <div *ngFor="let refeicao of dia.refeicoes; let refeicaoIndex = index"
+                         class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
+
+                        <!-- Cabeçalho da Refeição -->
+                        <div class="flex justify-between items-center mb-4">
+                            <div class="flex items-center gap-3">
+                                <mat-icon class="text-orange-500">restaurant</mat-icon>
+                                <div>
+                                    <h5 class="font-semibold text-gray-900 dark:text-white">
+                                        {{ refeicao.tipoRefeicao }}
+                                    </h5>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                                        {{ refeicao.alimentos.length }} ingrediente(s) • {{ refeicao.totalCalorias.toFixed(0) }} kcal
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="flex gap-2">
+                                <button mat-raised-button
+                                        color="primary"
+                                        (click)="aceitarRefeicao(diaIndex, refeicaoIndex)"
+                                        [disabled]="refeicao.aceita"
+                                        class="bg-green-600 hover:bg-green-700 text-white">
+                                    <mat-icon>{{ refeicao.aceita ? 'check_circle' : 'add_circle' }}</mat-icon>
+                                    {{ refeicao.aceita ? 'Aceita' : 'Aceitar' }}
+                                </button>
+
+                                <button mat-icon-button
+                                        color="warn"
+                                        (click)="excluirRefeicao(diaIndex, refeicaoIndex)"
+                                        matTooltip="Excluir refeição">
+                                    <mat-icon>delete</mat-icon>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Resumo Nutricional da Refeição -->
+                        <div class="grid grid-cols-4 gap-3 mb-4">
+                            <div class="bg-blue-50 dark:bg-blue-900/20 p-2 rounded text-center">
+                                <div class="text-sm font-bold text-blue-600 dark:text-blue-400">
+                                    {{ refeicao.totalCalorias.toFixed(0) }}
+                                </div>
+                                <div class="text-xs text-gray-600 dark:text-gray-400">kcal</div>
+                            </div>
+                            <div class="bg-green-50 dark:bg-green-900/20 p-2 rounded text-center">
+                                <div class="text-sm font-bold text-green-600 dark:text-green-400">
+                                    {{ refeicao.totalProteinas.toFixed(1) }}
+                                </div>
+                                <div class="text-xs text-gray-600 dark:text-gray-400">Prot (g)</div>
+                            </div>
+                            <div class="bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded text-center">
+                                <div class="text-sm font-bold text-yellow-600 dark:text-yellow-400">
+                                    {{ refeicao.totalCarboidratos.toFixed(1) }}
+                                </div>
+                                <div class="text-xs text-gray-600 dark:text-gray-400">Carb (g)</div>
+                            </div>
+                            <div class="bg-red-50 dark:bg-red-900/20 p-2 rounded text-center">
+                                <div class="text-sm font-bold text-red-600 dark:text-red-400">
+                                    {{ refeicao.totalGorduras.toFixed(1) }}
+                                </div>
+                                <div class="text-xs text-gray-600 dark:text-gray-400">Gord (g)</div>
+                            </div>
+                        </div>
+
+                        <!-- Lista de Alimentos -->
+                        <div class="space-y-2">
+                            <h6 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Ingredientes:</h6>
+                            <div *ngFor="let alimento of refeicao.alimentos"
+                                 class="flex justify-between items-center p-2 bg-white dark:bg-gray-600 rounded border">
+
+                                <div class="flex items-center gap-2">
+                                    <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                                    <div>
+                                        <span class="font-medium text-gray-900 dark:text-white">{{ alimento.nome }}</span>
+                                                                                 <span class="text-sm text-gray-600 dark:text-gray-400 ml-2">
+                                             {{ alimento.quantidade }} {{ alimento.unidade_medida }}
+                                         </span>
+                                    </div>
+                                </div>
+
+                                <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    {{ alimento.calorias.toFixed(0) }} kcal
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estado Vazio -->
+    <div *ngIf="planoGerado && diasPlano.length === 0" class="text-center py-12">
+        <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-8">
+            <mat-icon class="text-6xl text-gray-400 mb-4">restaurant_menu</mat-icon>
+            <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                Plano Vazio
+            </h3>
+            <p class="text-gray-600 dark:text-gray-400 mb-4">
+                Não foi possível gerar um plano alimentar com as preferências selecionadas.
+            </p>
+            <button mat-raised-button color="primary" (click)="novoPlano()">
+                <mat-icon>refresh</mat-icon>
+                Tentar Novamente
+            </button>
+        </div>
+    </div>
+</div>

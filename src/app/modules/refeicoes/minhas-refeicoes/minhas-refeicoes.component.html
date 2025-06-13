@@ -34,7 +34,7 @@
 
         <!-- Lista de Refeições Individuais -->
         <div class="space-y-4">
-            <mat-expansion-panel *ngFor="let refeicao of refeicoes; trackBy: trackByRefeicaoId" class="w-full">
+            <mat-expansion-panel *ngFor="let refeicao of refeicoes; trackBy: trackByRefeicaoId" class="w-full hover:shadow-lg transition-shadow duration-300">
                 <mat-expansion-panel-header>
                     <mat-panel-title>
                         <div class="flex items-center justify-between w-full mr-4">
@@ -61,7 +61,7 @@
 
                     <div class="space-y-3">
                         <div *ngFor="let alimento of refeicao.alimentos; trackBy: trackByAlimentoId"
-                             class="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border">
+                             class="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 transform hover:scale-[1.02]">
 
                             <div class="flex justify-between items-start">
                                 <div class="flex-1">
@@ -78,12 +78,24 @@
                                     </p>
                                 </div>
 
-                                <button mat-icon-button
-                                        color="primary"
-                                        (click)="editarAlimento(refeicao.id, alimento.id || 0)"
-                                        [disabled]="alimentoEditando?.alimentoId === (alimento.id || 0)">
-                                    <mat-icon>edit</mat-icon>
-                                </button>
+                                <div class="flex space-x-2">
+                                    <button mat-icon-button
+                                            color="primary"
+                                            (click)="editarAlimento(refeicao.id, alimento.id || 0)"
+                                            [disabled]="alimentoEditando?.alimentoId === (alimento.id || 0)"
+                                            matTooltip="Editar alimento"
+                                            class="hover:scale-110 transition-transform duration-200">
+                                        <mat-icon>edit</mat-icon>
+                                    </button>
+                                    <button mat-icon-button
+                                            color="warn"
+                                            (click)="excluirAlimento(refeicao.id, alimento.id || 0)"
+                                            [disabled]="alimentoEditando?.alimentoId === (alimento.id || 0)"
+                                            matTooltip="Excluir alimento"
+                                            class="hover:scale-110 transition-transform duration-200">
+                                        <mat-icon>delete</mat-icon>
+                                    </button>
+                                </div>
                             </div>
 
                             <div *ngIf="alimentoEditando?.alimentoId === (alimento.id || 0)"

@@ -10,7 +10,8 @@ export class RefeicoesService {
     private _httpClient = inject(HttpClient);
 
     private readonly REFEICAO_URL = 'https://agenteia.tigasolutions.com.br/refeicao';
-    private readonly PLANO_URL = 'http://localhost:8080/api/planos/gerar-e-salvar';
+    private readonly PLANO_URL = 'http://localhost:8080/api/planos/gerar';
+    private readonly PLANO_SALVAR_URL = 'http://localhost:8080/api/planos/gerar-e-salvar';
     private readonly PLANOS_URL = 'http://localhost:8080/api/planos';
     private readonly BACKEND_URL = 'http://localhost:8080/api/refeicoes';
     private readonly ALIMENTOS_URL = 'http://localhost:8080/api/alimentos';
@@ -68,8 +69,41 @@ export class RefeicoesService {
         return this._httpClient.put<AlimentoResponse>(`${this.MINHAS_REFEICOES_URL}/${refeicaoId}/alimentos/${alimentoUpdate.id}`, alimentoUpdate);
     }
 
+    excluirAlimentoRefeicao(refeicaoId: number, alimentoId: number): Observable<void> {
+        return this._httpClient.delete<void>(`${this.BACKEND_URL}/${refeicaoId}/alimentos/${alimentoId}`);
+    }
+
+    excluirAlimentoMinhasRefeicoes(refeicaoId: number, alimentoId: number): Observable<void> {
+        return this._httpClient.delete<void>(`${this.MINHAS_REFEICOES_URL}/${refeicaoId}/alimentos/${alimentoId}`);
+    }
+
+    buscarRefeicoesPorData(dataInicio: string, dataFim: string): Observable<RefeicaoResponse[]> {
+        return this._httpClient.get<RefeicaoResponse[]>(`${this.BACKEND_URL}/por-data`, {
+            params: {
+                dataInicio: dataInicio,
+                dataFim: dataFim
+            }
+        });
+    }
+
+    buscarRefeicoesPorDia(data: string): Observable<RefeicaoResponse[]> {
+        return this._httpClient.get<RefeicaoResponse[]>(`${this.BACKEND_URL}/por-dia`, {
+            params: {
+                data: data
+            }
+        });
+    }
+
     gerarPlanoAlimentar(request: RefeicaoRequest): Observable<PlanoAlimentarResponse> {
         return this._httpClient.post<PlanoAlimentarResponse>(this.PLANO_URL, request);
+    }
+
+    gerarPlanoAlimentarSemanal(request: RefeicaoRequest): Observable<PlanoAlimentarResponse> {
+        return this._httpClient.post<PlanoAlimentarResponse>(`${this.PLANO_SALVAR_URL}/semanal`, request);
+    }
+
+    adicionarRefeicao(refeicao: any): Observable<RefeicaoResponse> {
+        return this._httpClient.post<RefeicaoResponse>(this.BACKEND_URL, refeicao);
     }
 
     calcularGastoCalorico(peso: number, altura: number, idade: number, sexo: string, nivelAtividade: string): number {

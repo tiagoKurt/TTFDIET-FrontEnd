@@ -280,6 +280,55 @@ export class AdicionarRefeicaoComponent implements OnInit {
         this.editandoAlimento = null;
     }
 
+    excluirAlimento(alimento: AlimentoResponse): void {
+        if (!this.resultado) return;
+
+        const dialogRef = this._fuseConfirmationService.open({
+            title: 'Excluir alimento',
+            message: `Tem certeza que deseja excluir <span class="font-medium">${alimento.nome}</span> da refeição?`,
+            icon: {
+                show: true,
+                name: 'heroicons_outline:exclamation-triangle',
+                color: 'warn'
+            },
+            actions: {
+                confirm: {
+                    show: true,
+                    label: 'Excluir',
+                    color: 'warn'
+                },
+                cancel: {
+                    show: true,
+                    label: 'Cancelar'
+                }
+            },
+            dismissible: true
+        });
+
+        dialogRef.afterClosed().subscribe((result) => {
+            if (result === 'confirmed' && this.resultado) {
+                this.resultado.alimentos = this.resultado.alimentos.filter(a => a.id !== alimento.id);
+
+                if (this.editandoAlimento?.id === alimento.id) {
+                    this.editandoAlimento = null;
+                }
+
+                this._snackBar.open('Alimento excluído com sucesso!', 'Fechar', {
+                    duration: 3000,
+                    panelClass: ['success-snackbar']
+                });
+
+                if (this.resultado.alimentos.length === 0) {
+                    this.resultado = null;
+                    this._snackBar.open('Refeição vazia. Gere uma nova refeição.', 'Fechar', {
+                        duration: 4000,
+                        panelClass: ['info-snackbar']
+                    });
+                }
+            }
+        });
+    }
+
     selecionarAlimentoDisponivel(alimentoSelecionado: AlimentoListItem): void {
         if (!this.editandoAlimento) return;
 
@@ -489,7 +538,6 @@ export class AdicionarRefeicaoComponent implements OnInit {
                     this.resultado = null;
                     this.refeicaoAceita = false;
 
-                    // Limpar os campos de input
                     this.form.reset();
                     this.form.patchValue({
                         maximo_calorias_por_refeicao: 900

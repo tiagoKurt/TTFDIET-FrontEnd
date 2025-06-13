@@ -11,6 +11,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { RefeicoesService } from '../refeicoes.service';
 import { RefeicaoResponse, AlimentoResponse, AlimentoUpdate } from '../refeicoes.types';
 import { finalize } from 'rxjs';
@@ -29,7 +30,8 @@ import { finalize } from 'rxjs';
         MatButtonModule,
         MatIconModule,
         MatProgressSpinnerModule,
-        MatExpansionModule
+        MatExpansionModule,
+        MatTooltipModule
     ],
     templateUrl: './minhas-refeicoes.component.html',
     styleUrls: ['./minhas-refeicoes.component.scss']
@@ -120,6 +122,36 @@ export class MinhasRefeicoesComponent implements OnInit {
 
     cancelarEdicao(): void {
         this.alimentoEditando = null;
+    }
+
+    excluirAlimento(refeicaoId: number, alimentoId: number): void {
+        if (confirm('Tem certeza que deseja excluir este alimento da refeição?')) {
+            this.loading = true;
+            this._refeicoesService.excluirAlimentoMinhasRefeicoes(refeicaoId, alimentoId)
+                .pipe(
+                    finalize(() => this.loading = false),
+                    takeUntilDestroyed(this._destroyRef)
+                )
+                .subscribe({
+                    next: () => {
+                        this._snackBar.open('Alimento excluído com sucesso!', 'Fechar', {
+                            duration: 3000,
+                            panelClass: ['success-snackbar']
+                        });
+
+                        const refeicao = this.refeicoes.find(r => r.id === refeicaoId);
+                        if (refeicao) {
+                            refeicao.alimentos = refeicao.alimentos.filter(a => a.id !== alimentoId);
+                        }
+                    },
+                    error: (error) => {
+                        this._snackBar.open('Erro ao excluir alimento. Tente novamente.', 'Fechar', {
+                            duration: 5000,
+                            panelClass: ['error-snackbar']
+                        });
+                    }
+                });
+        }
     }
 
     trackByRefeicaoId(index: number, refeicao: RefeicaoResponse): number {

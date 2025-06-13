@@ -19,28 +19,9 @@ export const defaultNavigation: FuseNavigationItem[] = [
             {
                 id: 'planejamento',
                 title: 'Planejamento',
-                type: 'collapsable',
+                type: 'basic',
                 icon: 'heroicons_outline:calendar',
-                children: [
-                    {
-                        id: 'planejamento.semanal',
-                        title: 'Semanal',
-                        type: 'basic',
-                        link: '/planejamento/semanal',
-                    },
-                    {
-                        id: 'planejamento.diario',
-                        title: 'Diário',
-                        type: 'basic',
-                        link: '/planejamento/diario',
-                    },
-                    {
-                        id: 'planejamento.minhas-refeicoes',
-                        title: 'Minhas Refeições',
-                        type: 'basic',
-                        link: '/planejamento/minhas-refeicoes',
-                    },
-                ],
+                link: '/planejamento/diario',
             },
             {
                 id: 'refeicoes',
@@ -65,6 +46,12 @@ export const defaultNavigation: FuseNavigationItem[] = [
                         title: 'Minhas Preferências',
                         type: 'basic',
                         link: '/refeicoes/preferencias',
+                    },
+                    {
+                        id: 'refeicoes.minhas-refeicoes',
+                        title: 'Minhas Refeições',
+                        type: 'basic',
+                        link: '/planejamento/minhas-refeicoes',
                     },
                 ],
             },

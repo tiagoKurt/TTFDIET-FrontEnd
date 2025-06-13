@@ -1,0 +1,284 @@
+<div class="flex flex-col flex-auto min-w-0">
+    <!-- Cabeçalho -->
+    <div class="flex-auto p-6 sm:p-10">
+        <div class="flex flex-wrap items-center justify-between">
+            <div>
+                <div class="text-3xl font-semibold tracking-tight leading-8">Plano Alimentar Semanal</div>
+                <div class="font-medium tracking-tight text-secondary">Visualize e aceite refeições dos seus planos alimentares gerados</div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <mat-icon class="text-gray-400" svgIcon="heroicons_outline:information-circle"></mat-icon>
+                <span class="text-sm text-secondary">Clique em "Aceitar Refeição" para adicionar ao planejamento diário</span>
+            </div>
+        </div>
+
+        <!-- Carregando -->
+        <div *ngIf="carregando" class="text-center py-12">
+            <mat-icon class="animate-spin text-5xl text-primary">refresh</mat-icon>
+            <div class="mt-4 text-lg">Carregando seus planos alimentares...</div>
+        </div>
+
+        <!-- Mensagem quando não há planos -->
+        <div *ngIf="!carregando && planosSalvos.length === 0" class="text-center py-12">
+            <mat-icon class="text-gray-300 text-8xl">restaurant_menu</mat-icon>
+            <div class="mt-6 text-xl text-secondary">Nenhum plano alimentar encontrado</div>
+            <div class="text-sm text-secondary mt-2">Acesse a seção "Refeições > Plano Alimentar" para gerar seus planos</div>
+        </div>
+
+        <!-- Resumo dos planos -->
+        <div *ngIf="!carregando && diasComRefeicoes.length > 0" class="mt-8">
+            <mat-card class="shadow-lg">
+                <div class="p-6 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-t-md">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <mat-icon class="text-2xl">analytics</mat-icon>
+                            <div>
+                                <div class="text-lg font-semibold">Resumo dos Planos Alimentares</div>
+                                <div class="text-sm opacity-90">{{ planosSalvos.length }} plano(s) | {{ diasComRefeicoes.length }} dia(s) com refeições</div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xl font-bold">{{ calcularTotalCalorias() | number:'1.0-0' }} kcal</div>
+                            <div class="text-sm opacity-90">Total semanal</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="text-center p-4 bg-blue-50 rounded-lg">
+                            <div class="text-2xl font-bold text-blue-600">{{ calcularTotalCalorias() | number:'1.0-0' }}</div>
+                            <div class="text-sm text-gray-600">Calorias Totais</div>
+                        </div>
+                        <div class="text-center p-4 bg-green-50 rounded-lg">
+                            <div class="text-2xl font-bold text-green-600">{{ calcularTotalProteinas() | number:'1.1-1' }}g</div>
+                            <div class="text-sm text-gray-600">Proteínas</div>
+                        </div>
+                        <div class="text-center p-4 bg-yellow-50 rounded-lg">
+                            <div class="text-2xl font-bold text-yellow-600">{{ calcularTotalCarboidratos() | number:'1.1-1' }}g</div>
+                            <div class="text-sm text-gray-600">Carboidratos</div>
+                        </div>
+                        <div class="text-center p-4 bg-red-50 rounded-lg">
+                            <div class="text-2xl font-bold text-red-600">{{ calcularTotalGorduras() | number:'1.1-1' }}g</div>
+                            <div class="text-sm text-gray-600">Gorduras</div>
+                        </div>
+                    </div>
+                </div>
+            </mat-card>
+        </div>
+
+        <!-- Cards dos dias da semana -->
+        <div *ngIf="!carregando && diasComRefeicoes.length > 0" class="mt-8 space-y-6">
+            <div *ngFor="let dia of diasComRefeicoes" class="relative">
+                <mat-card class="overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300"
+                          [ngClass]="getCorCardDia(dia.totalCalorias)">
+
+                    <!-- Cabeçalho do dia -->
+                    <div class="bg-gradient-to-r from-teal-500 to-cyan-500 text-white px-6 py-4 cursor-pointer"
+                         (click)="toggleDiaExpansao(dia)">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <mat-icon class="text-2xl">today</mat-icon>
+                                <div>
+                                    <div class="text-lg font-semibold">{{ dia.dia }}</div>
+                                    <div class="text-sm opacity-90">{{ formatarData(dia.dataCompleta) }} • {{ dia.refeicoes.length }} refeição(ões)</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <span class="px-3 py-1 rounded-full text-sm font-medium bg-white bg-opacity-20"
+                                      [ngClass]="getCorBadgeDia(dia.totalCalorias)">
+                                    {{ dia.totalCalorias | number:'1.0-0' }} kcal
+                                </span>
+                                <mat-icon class="transform transition-transform duration-300"
+                                          [ngClass]="{ 'rotate-180': dia.expandido }">
+                                    expand_more
+                                </mat-icon>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Resumo nutricional do dia -->
+                    <div class="p-6">
+                        <div class="grid grid-cols-4 gap-4 mb-6">
+                            <div class="text-center p-3 bg-blue-50 rounded-lg">
+                                <div class="text-lg font-bold text-blue-600">{{ dia.totalCalorias | number:'1.0-0' }}</div>
+                                <div class="text-xs text-gray-600">Calorias</div>
+                            </div>
+                            <div class="text-center p-3 bg-green-50 rounded-lg">
+                                <div class="text-lg font-bold text-green-600">{{ dia.totalProteinas | number:'1.1-1' }}g</div>
+                                <div class="text-xs text-gray-600">Proteínas</div>
+                            </div>
+                            <div class="text-center p-3 bg-yellow-50 rounded-lg">
+                                <div class="text-lg font-bold text-yellow-600">{{ dia.totalCarboidratos | number:'1.1-1' }}g</div>
+                                <div class="text-xs text-gray-600">Carboidratos</div>
+                            </div>
+                            <div class="text-center p-3 bg-red-50 rounded-lg">
+                                <div class="text-lg font-bold text-red-600">{{ dia.totalGorduras | number:'1.1-1' }}g</div>
+                                <div class="text-xs text-gray-600">Gorduras</div>
+                            </div>
+                        </div>
+
+                        <!-- Detalhes expandidos do dia -->
+                        <div *ngIf="dia.expandido" class="border-t pt-6 animate-fadeIn">
+                            <h3 class="text-lg font-medium text-gray-800 mb-4 flex items-center">
+                                <mat-icon class="mr-2">restaurant</mat-icon>
+                                Refeições do Dia
+                            </h3>
+
+                            <!-- Refeições agrupadas por período -->
+                            <div class="space-y-4">
+                                <div *ngFor="let grupo of agruparRefeicoesPorPeriodo(dia.refeicoes)"
+                                     class="bg-gray-50 rounded-lg border">
+
+                                    <!-- Cabeçalho do período -->
+                                    <div class="bg-gray-100 px-4 py-3 rounded-t-lg">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center text-sm">
+                                                <mat-icon class="mr-2 text-base text-gray-600">schedule</mat-icon>
+                                                <span class="font-medium text-gray-800">{{ grupo.periodo }}</span>
+                                                <span class="ml-2 text-gray-600">({{ grupo.refeicoes.length }} refeição(ões))</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Refeições do período -->
+                                    <div class="p-4 space-y-3">
+                                        <div *ngFor="let refeicao of grupo.refeicoes"
+                                             class="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow duration-200">
+
+                                            <!-- Cabeçalho da refeição -->
+                                            <div class="flex items-center justify-between mb-3">
+                                                <div class="flex-1">
+                                                    <div class="font-medium text-gray-800">{{ refeicao.nome }}</div>
+                                                    <div class="text-sm text-gray-600 mt-1" *ngIf="refeicao.observacao">{{ refeicao.observacao }}</div>
+                                                </div>
+                                                <button mat-raised-button
+                                                        color="primary"
+                                                        (click)="aceitarRefeicao(refeicao)"
+                                                        class="ml-4 min-w-0">
+                                                    <mat-icon class="mr-1">check</mat-icon>
+                                                    Aceitar Refeição
+                                                </button>
+                                            </div>
+
+                                            <!-- Alimentos da refeição -->
+                                            <div class="space-y-2">
+                                                <h4 class="text-sm font-medium text-gray-700 mb-2">Alimentos:</h4>
+                                                <div *ngFor="let alimento of refeicao.alimentos"
+                                                     class="flex items-center justify-between p-3 bg-gray-50 rounded-lg text-sm">
+
+                                                    <div class="flex-1">
+                                                        <div class="font-medium text-gray-800">{{ alimento.nome }}</div>
+                                                        <div class="text-gray-600 mt-1">
+                                                            {{ alimento.quantidade }} {{ alimento.unidade_medida }}
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="flex items-center space-x-4 text-xs text-gray-500">
+                                                        <span class="flex items-center bg-blue-100 px-2 py-1 rounded">
+                                                            <div class="w-2 h-2 bg-blue-400 rounded-full mr-1"></div>
+                                                            {{ alimento.calorias }} kcal
+                                                        </span>
+                                                        <span class="flex items-center bg-green-100 px-2 py-1 rounded">
+                                                            <div class="w-2 h-2 bg-green-400 rounded-full mr-1"></div>
+                                                            P: {{ alimento.proteinas }}g
+                                                        </span>
+                                                        <span class="flex items-center bg-yellow-100 px-2 py-1 rounded">
+                                                            <div class="w-2 h-2 bg-yellow-400 rounded-full mr-1"></div>
+                                                            C: {{ alimento.carboidratos }}g
+                                                        </span>
+                                                        <span class="flex items-center bg-red-100 px-2 py-1 rounded">
+                                                            <div class="w-2 h-2 bg-red-400 rounded-full mr-1"></div>
+                                                            G: {{ alimento.gordura }}g
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                                                                         <!-- Totais da refeição -->
+                                             <div class="mt-3 pt-3 border-t border-gray-200">
+                                                 <div class="flex items-center justify-between text-sm">
+                                                     <span class="font-medium text-gray-700">Total da Refeição:</span>
+                                                     <div class="flex items-center space-x-3">
+                                                         <span class="text-blue-600 font-medium">
+                                                             {{ calcularTotalCaloriasRefeicao(refeicao) | number:'1.0-0' }} kcal
+                                                         </span>
+                                                         <span class="text-green-600">
+                                                             P: {{ calcularTotalProteinasRefeicao(refeicao) | number:'1.1-1' }}g
+                                                         </span>
+                                                         <span class="text-yellow-600">
+                                                             C: {{ calcularTotalCarboidratosRefeicao(refeicao) | number:'1.1-1' }}g
+                                                         </span>
+                                                         <span class="text-red-600">
+                                                             G: {{ calcularTotalGordurasRefeicao(refeicao) | number:'1.1-1' }}g
+                                                         </span>
+                                                     </div>
+                                                 </div>
+                                             </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </mat-card>
+            </div>
+        </div>
+
+        <!-- Legenda -->
+        <div class="mt-8" *ngIf="!carregando && diasComRefeicoes.length > 0">
+            <mat-card class="shadow-md">
+                <div class="p-4">
+                    <div class="flex items-center mb-3">
+                        <mat-icon class="mr-2 text-gray-600">palette</mat-icon>
+                        <span class="font-medium">Legenda das Cores</span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="flex items-center">
+                            <div class="w-4 h-4 bg-yellow-400 rounded mr-3"></div>
+                            <span class="text-sm">Baixas calorias (&lt; 1500 kcal/dia)</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-4 h-4 bg-green-400 rounded mr-3"></div>
+                            <span class="text-sm">Ideal (1500-2500 kcal/dia)</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-4 h-4 bg-red-400 rounded mr-3"></div>
+                            <span class="text-sm">Altas calorias (&gt; 2500 kcal/dia)</span>
+                        </div>
+                    </div>
+                </div>
+            </mat-card>
+        </div>
+
+        <!-- Instruções de uso -->
+        <div class="mt-8" *ngIf="!carregando && diasComRefeicoes.length > 0">
+            <mat-card class="shadow-md">
+                <div class="p-4 bg-blue-50">
+                    <div class="flex items-start">
+                        <mat-icon class="mr-3 text-blue-600 mt-1">info</mat-icon>
+                        <div>
+                            <h3 class="font-medium text-blue-800 mb-2">Como usar o Plano Alimentar Semanal:</h3>
+                            <ul class="text-sm text-blue-700 space-y-1">
+                                <li>• Clique nos cards dos dias para expandir e ver as refeições detalhadas</li>
+                                <li>• Use o botão "Aceitar Refeição" para adicionar uma refeição ao seu planejamento diário</li>
+                                <li>• As refeições aceitas serão adicionadas com o horário apropriado para hoje</li>
+                                <li>• Você pode ver suas refeições aceitas na seção "Planejamento Diário"</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </mat-card>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn {
+    animation: fadeIn 0.3s ease-out;
+}
+</style>

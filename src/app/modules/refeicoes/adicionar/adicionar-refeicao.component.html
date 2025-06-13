@@ -329,29 +329,54 @@
 
             <!-- Lista de Alimentos -->
             <div class="space-y-4">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
                     Alimentos da Refeição
+                    <span class="ml-2 px-2 py-1 bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-full text-sm font-medium">
+                        {{ resultado.alimentos.length }}
+                    </span>
                 </h3>
-                <div class="grid gap-4">
-                    <div *ngFor="let alimento of resultado.alimentos"
-                         class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow">
 
-                        <!-- Modo de Visualização -->
+                <div *ngIf="resultado.alimentos.length === 0"
+                     class="text-center py-8 bg-gray-50 dark:bg-gray-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600">
+                    <mat-icon class="text-gray-400 text-6xl mb-4">no_meals</mat-icon>
+                    <h4 class="text-lg font-medium text-gray-500 dark:text-gray-400 mb-2">Nenhum alimento na refeição</h4>
+                    <p class="text-sm text-gray-400 dark:text-gray-500">Todos os alimentos foram removidos. Gere uma nova refeição.</p>
+                </div>
+
+                <div class="grid gap-4" *ngIf="resultado.alimentos.length > 0">
+                    <div *ngFor="let alimento of resultado.alimentos"
+                         class="border rounded-lg p-4 transition-all duration-300 transform hover:scale-[1.02]"
+                         [ngClass]="{
+                             'border-primary-500 bg-primary-50 dark:bg-primary-900/20 shadow-lg': editandoAlimento?.id === alimento.id,
+                             'border-gray-200 dark:border-gray-700 hover:shadow-lg hover:border-primary-300': editandoAlimento?.id !== alimento.id
+                         }">
+
                         <div *ngIf="editandoAlimento?.id !== alimento.id">
                             <div class="flex justify-between items-start mb-3">
-                                <h4 class="text-lg font-semibold text-gray-900 dark:text-white">
+                                <h4 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
                                     {{ alimento.nome }}
+                                    <mat-icon class="ml-2 text-gray-400 text-sm" matTooltip="Clique no ícone de lixeira para excluir">info</mat-icon>
                                 </h4>
-                                <div class="flex items-center space-x-2">
-                                    <span class="text-orange-600 dark:text-orange-400 font-bold">
+                                <div class="flex items-center space-x-3">
+                                    <span class="text-orange-600 dark:text-orange-400 font-bold text-lg px-3 py-1 bg-orange-100 dark:bg-orange-900/30 rounded-full">
                                         {{ alimento.calorias }} kcal
                                     </span>
-                                    <button mat-icon-button
-                                            color="primary"
-                                            (click)="editarAlimento(alimento)"
-                                            matTooltip="Editar alimento">
-                                        <mat-icon>edit</mat-icon>
-                                    </button>
+                                    <div class="flex space-x-1">
+                                        <button mat-icon-button
+                                                color="primary"
+                                                (click)="editarAlimento(alimento)"
+                                                matTooltip="Editar alimento"
+                                                class="hover:scale-110 transition-transform duration-200 hover:bg-primary-100 dark:hover:bg-primary-900/30">
+                                            <mat-icon>edit</mat-icon>
+                                        </button>
+                                        <button mat-icon-button
+                                                color="warn"
+                                                (click)="excluirAlimento(alimento)"
+                                                matTooltip="Excluir alimento"
+                                                class="hover:scale-110 transition-transform duration-200 hover:bg-red-100 dark:hover:bg-red-900/30">
+                                            <mat-icon>delete</mat-icon>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 
@@ -389,7 +414,6 @@
                             </div>
                         </div>
 
-                        <!-- Modo de Edição -->
                         <div *ngIf="editandoAlimento?.id === alimento.id" class="space-y-4">
                             <div class="flex justify-between items-center">
                                 <h4 class="text-lg font-semibold text-gray-900 dark:text-white">
@@ -410,7 +434,6 @@
                                 </div>
                             </div>
 
-                            <!-- Seletor de Alimento Predefinido -->
                             <div class="space-y-3">
                                 <h5 class="font-medium text-gray-900 dark:text-white">
                                     Selecionar de Alimentos Disponíveis (opcional)
