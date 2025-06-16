@@ -1,48 +1,79 @@
-import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { RefeicaoRequest, AlimentoResponse, PlanoAlimentarResponse, RefeicaoResponse, AlimentoUpdate, AlimentoListItem, PlanoAlimentarDetalhado } from './refeicoes.types';
+import {
+    AlimentoListItem,
+    AlimentoResponse,
+    AlimentoUpdate,
+    PlanoAlimentarDetalhado,
+    PlanoAlimentarResponse,
+    RefeicaoRequest,
+    RefeicaoResponse,
+} from './refeicoes.types';
 
 @Injectable({
-    providedIn: 'root'
+    providedIn: 'root',
 })
 export class RefeicoesService {
     private _httpClient = inject(HttpClient);
 
-    private readonly REFEICAO_URL = 'https://agenteia.tigasolutions.com.br/refeicao';
-    private readonly PLANO_URL = 'http://localhost:8080/api/planos/gerar';
-    private readonly PLANO_SALVAR_URL = 'http://localhost:8080/api/planos/gerar-e-salvar';
-    private readonly PLANOS_URL = 'http://localhost:8080/api/planos';
-    private readonly BACKEND_URL = 'http://localhost:8080/api/refeicoes';
-    private readonly ALIMENTOS_URL = 'http://localhost:8080/api/alimentos';
-    private readonly MINHAS_REFEICOES_URL = 'http://localhost:8080/api/minhas-refeicoes';
+    private readonly REFEICAO_URL =
+        'https://agenteia.tigasolutions.com.br/refeicao';
+    private readonly PLANO_URL = 'http://backend:8080/api/planos/gerar';
+    private readonly PLANO_SALVAR_URL =
+        'http://backend:8080/api/planos/gerar-e-salvar';
+    private readonly PLANOS_URL = 'http://backend:8080/api/planos';
+    private readonly BACKEND_URL = 'http://backend:8080/api/refeicoes';
+    private readonly ALIMENTOS_URL = 'http://backend:8080/api/alimentos';
+    private readonly MINHAS_REFEICOES_URL =
+        'http://backend:8080/api/minhas-refeicoes';
 
     gerarRefeicao(request: RefeicaoRequest): Observable<AlimentoResponse[]> {
-        return this._httpClient.post<AlimentoResponse[]>(this.REFEICAO_URL, request);
+        return this._httpClient.post<AlimentoResponse[]>(
+            this.REFEICAO_URL,
+            request
+        );
     }
 
-    gerarESalvarRefeicao(request: RefeicaoRequest): Observable<RefeicaoResponse> {
-        return this._httpClient.post<RefeicaoResponse>(`${this.BACKEND_URL}/gerar-e-salvar`, request);
+    gerarESalvarRefeicao(
+        request: RefeicaoRequest
+    ): Observable<RefeicaoResponse> {
+        return this._httpClient.post<RefeicaoResponse>(
+            `${this.BACKEND_URL}/gerar-e-salvar`,
+            request
+        );
     }
 
     excluirRefeicao(refeicaoId: number): Observable<void> {
-        return this._httpClient.delete<void>(`${this.BACKEND_URL}/${refeicaoId}`);
+        return this._httpClient.delete<void>(
+            `${this.BACKEND_URL}/${refeicaoId}`
+        );
     }
 
     excluirMinhaRefeicao(refeicaoId: number): Observable<void> {
-        return this._httpClient.delete<void>(`${this.MINHAS_REFEICOES_URL}/${refeicaoId}`);
+        return this._httpClient.delete<void>(
+            `${this.MINHAS_REFEICOES_URL}/${refeicaoId}`
+        );
     }
 
     excluirPlano(planoId: number): Observable<void> {
         return this._httpClient.delete<void>(`${this.PLANOS_URL}/${planoId}`);
     }
 
-    atualizarAlimento(refeicaoId: number, alimentoUpdate: AlimentoUpdate): Observable<AlimentoResponse> {
-        return this._httpClient.put<AlimentoResponse>(`${this.BACKEND_URL}/${refeicaoId}/alimentos/${alimentoUpdate.id}`, alimentoUpdate);
+    atualizarAlimento(
+        refeicaoId: number,
+        alimentoUpdate: AlimentoUpdate
+    ): Observable<AlimentoResponse> {
+        return this._httpClient.put<AlimentoResponse>(
+            `${this.BACKEND_URL}/${refeicaoId}/alimentos/${alimentoUpdate.id}`,
+            alimentoUpdate
+        );
     }
 
     listarAlimentos(): Observable<AlimentoListItem[]> {
-        return this._httpClient.get<AlimentoListItem[]>(`${this.ALIMENTOS_URL}/lista`);
+        return this._httpClient.get<AlimentoListItem[]>(
+            `${this.ALIMENTOS_URL}/lista`
+        );
     }
 
     listarPlanos(): Observable<PlanoAlimentarDetalhado[]> {
@@ -50,77 +81,134 @@ export class RefeicoesService {
     }
 
     buscarPlano(id: number): Observable<PlanoAlimentarDetalhado> {
-        return this._httpClient.get<PlanoAlimentarDetalhado>(`${this.PLANOS_URL}/${id}`);
+        return this._httpClient.get<PlanoAlimentarDetalhado>(
+            `${this.PLANOS_URL}/${id}`
+        );
     }
 
-    atualizarAlimentoPlano(planoId: number, refeicaoId: number, alimentoUpdate: AlimentoUpdate): Observable<AlimentoResponse> {
-        return this._httpClient.put<AlimentoResponse>(`${this.PLANOS_URL}/${planoId}/refeicoes/${refeicaoId}/alimentos/${alimentoUpdate.id}`, alimentoUpdate);
+    atualizarAlimentoPlano(
+        planoId: number,
+        refeicaoId: number,
+        alimentoUpdate: AlimentoUpdate
+    ): Observable<AlimentoResponse> {
+        return this._httpClient.put<AlimentoResponse>(
+            `${this.PLANOS_URL}/${planoId}/refeicoes/${refeicaoId}/alimentos/${alimentoUpdate.id}`,
+            alimentoUpdate
+        );
     }
 
     listarMinhasRefeicoes(): Observable<RefeicaoResponse[]> {
-        return this._httpClient.get<RefeicaoResponse[]>(this.MINHAS_REFEICOES_URL);
+        return this._httpClient.get<RefeicaoResponse[]>(
+            this.MINHAS_REFEICOES_URL
+        );
     }
 
     buscarMinhaRefeicao(id: number): Observable<RefeicaoResponse> {
-        return this._httpClient.get<RefeicaoResponse>(`${this.MINHAS_REFEICOES_URL}/${id}`);
+        return this._httpClient.get<RefeicaoResponse>(
+            `${this.MINHAS_REFEICOES_URL}/${id}`
+        );
     }
 
-    atualizarAlimentoMinhasRefeicoes(refeicaoId: number, alimentoUpdate: AlimentoUpdate): Observable<AlimentoResponse> {
-        return this._httpClient.put<AlimentoResponse>(`${this.MINHAS_REFEICOES_URL}/${refeicaoId}/alimentos/${alimentoUpdate.id}`, alimentoUpdate);
+    atualizarAlimentoMinhasRefeicoes(
+        refeicaoId: number,
+        alimentoUpdate: AlimentoUpdate
+    ): Observable<AlimentoResponse> {
+        return this._httpClient.put<AlimentoResponse>(
+            `${this.MINHAS_REFEICOES_URL}/${refeicaoId}/alimentos/${alimentoUpdate.id}`,
+            alimentoUpdate
+        );
     }
 
-    excluirAlimentoRefeicao(refeicaoId: number, alimentoId: number): Observable<void> {
-        return this._httpClient.delete<void>(`${this.BACKEND_URL}/${refeicaoId}/alimentos/${alimentoId}`);
+    excluirAlimentoRefeicao(
+        refeicaoId: number,
+        alimentoId: number
+    ): Observable<void> {
+        return this._httpClient.delete<void>(
+            `${this.BACKEND_URL}/${refeicaoId}/alimentos/${alimentoId}`
+        );
     }
 
-    excluirAlimentoMinhasRefeicoes(refeicaoId: number, alimentoId: number): Observable<void> {
-        return this._httpClient.delete<void>(`${this.MINHAS_REFEICOES_URL}/${refeicaoId}/alimentos/${alimentoId}`);
+    excluirAlimentoMinhasRefeicoes(
+        refeicaoId: number,
+        alimentoId: number
+    ): Observable<void> {
+        return this._httpClient.delete<void>(
+            `${this.MINHAS_REFEICOES_URL}/${refeicaoId}/alimentos/${alimentoId}`
+        );
     }
 
-    buscarRefeicoesPorData(dataInicio: string, dataFim: string): Observable<RefeicaoResponse[]> {
-        return this._httpClient.get<RefeicaoResponse[]>(`${this.BACKEND_URL}/por-data`, {
-            params: {
-                dataInicio: dataInicio,
-                dataFim: dataFim
+    buscarRefeicoesPorData(
+        dataInicio: string,
+        dataFim: string
+    ): Observable<RefeicaoResponse[]> {
+        return this._httpClient.get<RefeicaoResponse[]>(
+            `${this.BACKEND_URL}/por-data`,
+            {
+                params: {
+                    dataInicio: dataInicio,
+                    dataFim: dataFim,
+                },
             }
-        });
+        );
     }
 
     buscarRefeicoesPorDia(data: string): Observable<RefeicaoResponse[]> {
-        return this._httpClient.get<RefeicaoResponse[]>(`${this.BACKEND_URL}/por-dia`, {
-            params: {
-                data: data
+        return this._httpClient.get<RefeicaoResponse[]>(
+            `${this.BACKEND_URL}/por-dia`,
+            {
+                params: {
+                    data: data,
+                },
             }
-        });
+        );
     }
 
-    gerarPlanoAlimentar(request: RefeicaoRequest): Observable<PlanoAlimentarResponse> {
-        return this._httpClient.post<PlanoAlimentarResponse>(this.PLANO_URL, request);
+    gerarPlanoAlimentar(
+        request: RefeicaoRequest
+    ): Observable<PlanoAlimentarResponse> {
+        return this._httpClient.post<PlanoAlimentarResponse>(
+            this.PLANO_URL,
+            request
+        );
     }
 
-    gerarPlanoAlimentarSemanal(request: RefeicaoRequest): Observable<PlanoAlimentarResponse> {
-        return this._httpClient.post<PlanoAlimentarResponse>(`${this.PLANO_SALVAR_URL}/semanal`, request);
+    gerarPlanoAlimentarSemanal(
+        request: RefeicaoRequest
+    ): Observable<PlanoAlimentarResponse> {
+        return this._httpClient.post<PlanoAlimentarResponse>(
+            `${this.PLANO_SALVAR_URL}/semanal`,
+            request
+        );
     }
 
     adicionarRefeicao(refeicao: any): Observable<RefeicaoResponse> {
-        return this._httpClient.post<RefeicaoResponse>(this.BACKEND_URL, refeicao);
+        return this._httpClient.post<RefeicaoResponse>(
+            this.BACKEND_URL,
+            refeicao
+        );
     }
 
-    calcularGastoCalorico(peso: number, altura: number, idade: number, sexo: string, nivelAtividade: string): number {
+    calcularGastoCalorico(
+        peso: number,
+        altura: number,
+        idade: number,
+        sexo: string,
+        nivelAtividade: string
+    ): number {
         let gastoBsal: number;
 
         if (sexo === 'MASCULINO') {
-            gastoBsal = 88.362 + (13.397 * peso) + (4.799 * altura) - (5.677 * idade);
+            gastoBsal = 88.362 + 13.397 * peso + 4.799 * altura - 5.677 * idade;
         } else {
-            gastoBsal = 447.593 + (9.247 * peso) + (3.098 * altura) - (4.330 * idade);
+            gastoBsal = 447.593 + 9.247 * peso + 3.098 * altura - 4.33 * idade;
         }
 
         const multiplicadores: { [key: string]: number } = {
-            'SEDENTARIO': 1.2,
-            'LEVE': 1.375,
-            'MODERADO': 1.55,
-            'INTENSO': 1.725,
-            'ATLETA': 1.9
+            SEDENTARIO: 1.2,
+            LEVE: 1.375,
+            MODERADO: 1.55,
+            INTENSO: 1.725,
+            ATLETA: 1.9,
         };
 
         return Math.round(gastoBsal * (multiplicadores[nivelAtividade] || 1.2));
@@ -136,9 +224,9 @@ export class RefeicoesService {
                 'Aveia',
                 'Granola',
                 'Café',
-                'Suco natural'
+                'Suco natural',
             ],
-            'Almoço': [
+            Almoço: [
                 'Frango',
                 'Carne vermelha',
                 'Peixe',
@@ -146,7 +234,7 @@ export class RefeicoesService {
                 'Feijão',
                 'Salada',
                 'Legumes',
-                'Massa integral'
+                'Massa integral',
             ],
             'Lanche da tarde': [
                 'Frutas',
@@ -156,9 +244,9 @@ export class RefeicoesService {
                 'Vitamina',
                 'Sanduíche natural',
                 'Queijo',
-                'Chá'
+                'Chá',
             ],
-            'Jantar': [
+            Jantar: [
                 'Sopa',
                 'Salada',
                 'Frango grelhado',
@@ -166,7 +254,7 @@ export class RefeicoesService {
                 'Legumes',
                 'Omelete',
                 'Quinoa',
-                'Batata doce'
+                'Batata doce',
             ],
             'Lanche da noite': [
                 'Chá',
@@ -176,8 +264,8 @@ export class RefeicoesService {
                 'Biscoito integral',
                 'Leite',
                 'Aveia',
-                'Mel'
-            ]
+                'Mel',
+            ],
         };
 
         return preferencias[tipoRefeicao] || [];
