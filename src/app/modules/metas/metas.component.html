@@ -1,0 +1,391 @@
+<div class="flex flex-col flex-auto min-w-0">
+    <!-- Cabeçalho -->
+    <div class="relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-700 text-white">
+        <div class="absolute inset-0 bg-black opacity-10"></div>
+        <div class="relative p-6 sm:p-10">
+            <div class="flex flex-wrap items-center justify-between">
+                <div class="flex-1">
+                    <h1 class="text-3xl font-bold tracking-tight flex items-center">
+                        <mat-icon class="mr-3 text-4xl">flag</mat-icon>
+                        Minhas Metas
+                    </h1>
+                    <p class="mt-2 text-lg opacity-90">
+                        Defina e acompanhe seus objetivos de saúde e nutrição
+                    </p>
+                </div>
+                <div class="flex items-center gap-3 mt-4 sm:mt-0">
+                    <button
+                        mat-flat-button
+                        class="bg-white text-blue-600 hover:bg-gray-50"
+                        (click)="adicionarNovaMeta()">
+                        <mat-icon class="mr-2">add</mat-icon>
+                        Nova Meta
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Conteúdo principal -->
+    <div class="flex-auto p-6 sm:p-10 bg-gray-50">
+
+        <!-- Cards de resumo -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+            <!-- Total de Metas -->
+            <mat-card class="p-6 text-center hover:shadow-lg transition-shadow cursor-pointer">
+                <div class="text-3xl font-bold text-blue-500 mb-2">{{ resumo.totalMetas }}</div>
+                <div class="text-sm text-gray-600">Total de Metas</div>
+                <mat-icon class="text-blue-500 mt-2">flag</mat-icon>
+            </mat-card>
+
+            <!-- Metas Completas -->
+            <mat-card class="p-6 text-center hover:shadow-lg transition-shadow cursor-pointer">
+                <div class="text-3xl font-bold text-green-500 mb-2">{{ resumo.metasCompletas }}</div>
+                <div class="text-sm text-gray-600">Metas Concluídas</div>
+                <mat-icon class="text-green-500 mt-2">check_circle</mat-icon>
+            </mat-card>
+
+            <!-- Metas Em Andamento -->
+            <mat-card class="p-6 text-center hover:shadow-lg transition-shadow cursor-pointer">
+                <div class="text-3xl font-bold text-orange-500 mb-2">{{ resumo.metasEmAndamento }}</div>
+                <div class="text-sm text-gray-600">Em Andamento</div>
+                <mat-icon class="text-orange-500 mt-2">trending_up</mat-icon>
+            </mat-card>
+        </div>
+
+        <!-- Tabs para organizar as metas -->
+        <mat-card class="mb-8">
+            <mat-tab-group [(selectedIndex)]="selectedTabIndex" class="metas-tabs">
+
+                <!-- Tab: Todas as Metas -->
+                <mat-tab label="Todas as Metas">
+                    <div class="p-6">
+                        <div *ngIf="isLoading" class="flex justify-center items-center py-8">
+                            <div class="text-gray-500">Carregando metas...</div>
+                        </div>
+
+                        <div *ngIf="!isLoading && metas.length === 0" class="text-center py-12">
+                            <mat-icon class="text-6xl text-gray-400 mb-4">flag</mat-icon>
+                            <h3 class="text-xl font-semibold text-gray-700 mb-2">Nenhuma meta definida</h3>
+                            <p class="text-gray-500 mb-6">Comece definindo seus objetivos de saúde e nutrição</p>
+                            <button mat-flat-button color="primary" (click)="adicionarNovaMeta()">
+                                <mat-icon class="mr-2">add</mat-icon>
+                                Criar Primeira Meta
+                            </button>
+                        </div>
+
+                        <div *ngIf="!isLoading && metas.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div *ngFor="let meta of metas; trackBy: trackByMeta"
+                                 class="border rounded-lg p-6 transition-shadow bg-white"
+                                 [class]="meta.completa ?
+                                         'border-green-300 bg-green-50 shadow-sm' :
+                                         'border-gray-200 hover:shadow-md'">
+
+                                <!-- Cabeçalho da meta -->
+                                <div class="flex items-start justify-between mb-4">
+                                    <div class="flex items-center">
+                                        <mat-icon [class]="obterCorPorTipo(meta.tipoMeta) + ' text-2xl mr-3'">
+                                            {{ obterIconePorTipo(meta.tipoMeta) }}
+                                        </mat-icon>
+                                        <div>
+                                            <h3 class="font-semibold text-gray-800">{{ obterLabelPorTipo(meta.tipoMeta) }}</h3>
+                                            <span class="text-xs px-2 py-1 rounded-full inline-block mt-1"
+                                                  [class]="obterCorStatus(meta)">
+                                                {{ obterStatusMeta(meta) }}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <button mat-icon-button [matMenuTriggerFor]="metaMenu">
+                                        <mat-icon>more_vert</mat-icon>
+                                    </button>
+
+                                    <mat-menu #metaMenu="matMenu">
+                                                                                <button mat-menu-item
+                                                (click)="atualizarProgresso(meta)"
+                                                [disabled]="meta.completa"
+                                                [matTooltip]="meta.completa ? 'Meta concluída não pode ser atualizada' : 'Atualizar progresso da meta'">
+                                            <mat-icon>update</mat-icon>
+                                            <span>Atualizar Progresso</span>
+                                        </button>
+                                        <button mat-menu-item
+                                                (click)="editarMeta(meta)"
+                                                [disabled]="meta.completa"
+                                                [matTooltip]="meta.completa ? 'Meta concluída não pode ser editada' : 'Editar configurações da meta'">
+                                            <mat-icon>edit</mat-icon>
+                                            <span>Editar Meta</span>
+                                        </button>
+                                        <button mat-menu-item
+                                                (click)="criarNovaMeta(meta.tipoMeta)"
+                                                *ngIf="meta.completa">
+                                            <mat-icon>add</mat-icon>
+                                            <span>Nova Meta {{ obterLabelPorTipo(meta.tipoMeta) }}</span>
+                                        </button>
+                                        <mat-divider *ngIf="meta.completa"></mat-divider>
+                                        <button mat-menu-item (click)="excluirMeta(meta)" class="text-red-600">
+                                            <mat-icon class="text-red-600">delete</mat-icon>
+                                            <span>Excluir</span>
+                                        </button>
+                                    </mat-menu>
+                                </div>
+
+                                <!-- Valores da meta -->
+                                <div class="mb-4">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-sm text-gray-600">Progresso</span>
+                                        <span class="text-sm font-medium">
+                                            {{ meta.valorAtual }} / {{ meta.valorMeta }} {{ obterUnidadePorTipo(meta.tipoMeta) }}
+                                        </span>
+                                    </div>
+                                    <mat-progress-bar
+                                        [color]="meta.completa ? 'primary' : 'accent'"
+                                        [mode]="'determinate'"
+                                        [value]="calcularProgresso(meta)">
+                                    </mat-progress-bar>
+                                    <div class="text-xs text-gray-500 mt-1 text-right">
+                                        {{ calcularProgresso(meta).toFixed(1) }}% concluído
+                                    </div>
+                                </div>
+
+                                <!-- Ações da meta -->
+                                <div class="flex gap-2" *ngIf="!meta.completa">
+                                    <button mat-stroked-button
+                                            class="flex-1 text-xs"
+                                            (click)="atualizarProgresso(meta)">
+                                        <mat-icon class="mr-1 text-sm">update</mat-icon>
+                                        Atualizar
+                                    </button>
+                                    <button mat-stroked-button
+                                            color="primary"
+                                            class="flex-1 text-xs"
+                                            (click)="editarMeta(meta)">
+                                        <mat-icon class="mr-1 text-sm">edit</mat-icon>
+                                        Editar
+                                    </button>
+                                </div>
+
+                                <!-- Ações para meta concluída -->
+                                <div class="flex gap-2" *ngIf="meta.completa">
+                                    <div class="flex-1 text-center py-2 bg-green-50 rounded-md border border-green-200">
+                                        <mat-icon class="text-green-600 text-sm mr-1">check_circle</mat-icon>
+                                        <span class="text-xs text-green-700 font-medium">Meta Concluída!</span>
+                                    </div>
+                                    <button mat-stroked-button
+                                            color="primary"
+                                            class="text-xs"
+                                            (click)="criarNovaMeta(meta.tipoMeta)">
+                                        <mat-icon class="mr-1 text-sm">add</mat-icon>
+                                        Nova Meta
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </mat-tab>
+
+                <!-- Tab: Metas por Tipo -->
+                <mat-tab label="Por Categoria">
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+                            <!-- Categoria: Peso -->
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                                    <mat-icon class="text-blue-500 mr-2">scale</mat-icon>
+                                    Peso
+                                </h3>
+                                <div *ngIf="obterMetasPorTipo('PESO').length === 0"
+                                     class="text-center py-8 bg-gray-50 rounded-lg">
+                                    <mat-icon class="text-4xl text-gray-400 mb-2">scale</mat-icon>
+                                    <p class="text-sm text-gray-500">Nenhuma meta de peso definida</p>
+                                </div>
+                                <div *ngFor="let meta of obterMetasPorTipo('PESO')"
+                                     class="bg-white border rounded-lg p-4 mb-4">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="font-medium">{{ meta.valorAtual }}kg / {{ meta.valorMeta }}kg</span>
+                                        <span class="text-xs px-2 py-1 rounded-full" [class]="obterCorStatus(meta)">
+                                            {{ obterStatusMeta(meta) }}
+                                        </span>
+                                    </div>
+                                    <mat-progress-bar [value]="calcularProgresso(meta)" color="primary"></mat-progress-bar>
+                                </div>
+                            </div>
+
+                            <!-- Categoria: Hidratação -->
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                                    <mat-icon class="text-cyan-500 mr-2">water_drop</mat-icon>
+                                    Hidratação
+                                </h3>
+                                <div *ngIf="obterMetasPorTipo('AGUA').length === 0"
+                                     class="text-center py-8 bg-gray-50 rounded-lg">
+                                    <mat-icon class="text-4xl text-gray-400 mb-2">water_drop</mat-icon>
+                                    <p class="text-sm text-gray-500">Nenhuma meta de hidratação definida</p>
+                                </div>
+                                <div *ngFor="let meta of obterMetasPorTipo('AGUA')"
+                                     class="bg-white border rounded-lg p-4 mb-4">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="font-medium">{{ meta.valorAtual }}ml / {{ meta.valorMeta }}ml</span>
+                                        <span class="text-xs px-2 py-1 rounded-full" [class]="obterCorStatus(meta)">
+                                            {{ obterStatusMeta(meta) }}
+                                        </span>
+                                    </div>
+                                    <mat-progress-bar [value]="calcularProgresso(meta)" color="accent"></mat-progress-bar>
+                                </div>
+                            </div>
+
+                            <!-- Categoria: Calorias -->
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                                    <mat-icon class="text-orange-500 mr-2">local_fire_department</mat-icon>
+                                    Calorias
+                                </h3>
+                                <div *ngIf="obterMetasPorTipo('CALORIAS').length === 0"
+                                     class="text-center py-8 bg-gray-50 rounded-lg">
+                                    <mat-icon class="text-4xl text-gray-400 mb-2">local_fire_department</mat-icon>
+                                    <p class="text-sm text-gray-500">Nenhuma meta calórica definida</p>
+                                </div>
+                                <div *ngFor="let meta of obterMetasPorTipo('CALORIAS')"
+                                     class="bg-white border rounded-lg p-4 mb-4">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="font-medium">{{ meta.valorAtual }}kcal / {{ meta.valorMeta }}kcal</span>
+                                        <span class="text-xs px-2 py-1 rounded-full" [class]="obterCorStatus(meta)">
+                                            {{ obterStatusMeta(meta) }}
+                                        </span>
+                                    </div>
+                                    <mat-progress-bar [value]="calcularProgresso(meta)" color="warn"></mat-progress-bar>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </mat-tab>
+
+                <!-- Tab: Histórico -->
+                <mat-tab label="Histórico">
+                    <div class="p-6">
+                        <div *ngIf="obterMetasCompletas().length === 0" class="text-center py-12">
+                            <mat-icon class="text-6xl text-gray-400 mb-4">history</mat-icon>
+                            <h3 class="text-xl font-semibold text-gray-700 mb-2">Nenhuma Meta Concluída</h3>
+                            <p class="text-gray-500">Suas metas concluídas aparecerão aqui</p>
+                        </div>
+
+                        <div *ngIf="obterMetasCompletas().length > 0" class="space-y-4">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                                <mat-icon class="text-green-500 mr-2">check_circle</mat-icon>
+                                Metas Concluídas ({{ obterMetasCompletas().length }})
+                            </h3>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div *ngFor="let meta of obterMetasCompletas()"
+                                     class="bg-green-50 border border-green-200 rounded-lg p-4">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <div class="flex items-center">
+                                            <mat-icon [class]="obterCorPorTipo(meta.tipoMeta) + ' text-xl mr-2'">
+                                                {{ obterIconePorTipo(meta.tipoMeta) }}
+                                            </mat-icon>
+                                            <span class="font-medium text-gray-800">{{ obterLabelPorTipo(meta.tipoMeta) }}</span>
+                                        </div>
+                                        <mat-icon class="text-green-600">check_circle</mat-icon>
+                                    </div>
+
+                                    <div class="text-sm text-gray-600 mb-3">
+                                        <strong>Meta:</strong> {{ meta.valorMeta }} {{ obterUnidadePorTipo(meta.tipoMeta) }}<br>
+                                        <strong>Alcançado:</strong> {{ meta.valorAtual }} {{ obterUnidadePorTipo(meta.tipoMeta) }}
+                                    </div>
+
+                                    <div class="flex gap-2">
+                                        <button mat-stroked-button
+                                                color="primary"
+                                                class="flex-1 text-xs"
+                                                (click)="criarNovaMeta(meta.tipoMeta)">
+                                            <mat-icon class="mr-1 text-sm">add</mat-icon>
+                                            Nova Meta
+                                        </button>
+                                        <button mat-icon-button
+                                                color="warn"
+                                                (click)="excluirMeta(meta)"
+                                                matTooltip="Excluir meta">
+                                            <mat-icon class="text-sm">delete</mat-icon>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </mat-tab>
+            </mat-tab-group>
+        </mat-card>
+
+        <!-- Cards de insights e estatísticas -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            <!-- Card: Dicas para Atingir Metas -->
+            <mat-card>
+                <div class="px-6 py-4 bg-gradient-to-r from-green-500 to-teal-600 text-white rounded-t-md">
+                    <div class="font-semibold text-lg flex items-center">
+                        <mat-icon class="mr-2">lightbulb</mat-icon>
+                        Dicas para Atingir suas Metas
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-4">
+                        <div class="flex items-start">
+                            <mat-icon class="text-green-500 mr-3 mt-1">check_circle</mat-icon>
+                            <div>
+                                <div class="font-medium text-gray-800">Seja consistente</div>
+                                <div class="text-sm text-gray-600">Pequenas ações diárias são mais eficazes que grandes mudanças esporádicas</div>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <mat-icon class="text-blue-500 mr-3 mt-1">track_changes</mat-icon>
+                            <div>
+                                <div class="font-medium text-gray-800">Monitore seu progresso</div>
+                                <div class="text-sm text-gray-600">Acompanhe diariamente e ajuste suas estratégias conforme necessário</div>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <mat-icon class="text-purple-500 mr-3 mt-1">celebration</mat-icon>
+                            <div>
+                                <div class="font-medium text-gray-800">Comemore pequenas vitórias</div>
+                                <div class="text-sm text-gray-600">Reconheça e celebre cada marco alcançado no caminho</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </mat-card>
+
+            <!-- Card: Performance Geral -->
+            <mat-card>
+                <div class="px-6 py-4 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-t-md">
+                    <div class="font-semibold text-lg flex items-center">
+                        <mat-icon class="mr-2">analytics</mat-icon>
+                        Performance Geral
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-6">
+                        <div class="text-center">
+                            <div class="text-4xl font-bold text-gray-800 mb-2">
+                                {{ resumo.totalMetas > 0 ? ((resumo.metasCompletas / resumo.totalMetas) * 100).toFixed(0) : 0 }}%
+                            </div>
+                            <div class="text-sm text-gray-600">Taxa de sucesso geral</div>
+                        </div>
+
+                        <mat-divider></mat-divider>
+
+                        <div class="grid grid-cols-2 gap-4 text-center">
+                            <div>
+                                <div class="text-2xl font-bold text-green-500">{{ resumo.metasCompletas }}</div>
+                                <div class="text-xs text-gray-600">Concluídas</div>
+                            </div>
+                            <div>
+                                <div class="text-2xl font-bold text-orange-500">{{ resumo.metasEmAndamento }}</div>
+                                <div class="text-xs text-gray-600">Em andamento</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </mat-card>
+        </div>
+    </div>
+</div>

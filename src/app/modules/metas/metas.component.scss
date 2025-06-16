@@ -1,0 +1,72 @@
+.metas-tabs {
+    .mat-mdc-tab-group {
+        .mat-mdc-tab-header {
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .mat-mdc-tab-body-wrapper {
+            padding: 0;
+        }
+    }
+}
+
+.meta-card {
+    transition: all 0.2s ease-in-out;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+}
+
+.mat-mdc-progress-bar {
+    height: 8px;
+    border-radius: 4px;
+
+    .mdc-linear-progress__bar-inner {
+        border-radius: 4px;
+    }
+}
+
+.status-badge {
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
+
+    &.completed {
+        @apply bg-green-100 text-green-800;
+    }
+
+    &.in-progress {
+        @apply bg-blue-100 text-blue-800;
+    }
+
+    &.starting {
+        @apply bg-gray-100 text-gray-800;
+    }
+}
+
+@keyframes pulse-success {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: .7;
+    }
+}
+
+.pulse-success {
+    animation: pulse-success 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@media (max-width: 768px) {
+    .metas-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .meta-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}

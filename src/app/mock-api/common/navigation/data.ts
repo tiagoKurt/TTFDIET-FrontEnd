@@ -24,6 +24,13 @@ export const defaultNavigation: FuseNavigationItem[] = [
                 link: '/planejamento/diario',
             },
             {
+                id: 'metas',
+                title: 'Metas',
+                type: 'basic',
+                icon: 'heroicons_outline:flag',
+                link: '/metas',
+            },
+            {
                 id: 'refeicoes',
                 title: 'Refeições',
                 type: 'collapsable',

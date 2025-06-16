@@ -1,7 +1,20 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray, FormControl } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';import { MatFormFieldModule } from '@angular/material/form-field';import { MatInputModule } from '@angular/material/input';import { MatSelectModule } from '@angular/material/select';import { MatRadioModule } from '@angular/material/radio';import { MatChipsModule } from '@angular/material/chips';import { MatCheckboxModule } from '@angular/material/checkbox';import { MatIconModule } from '@angular/material/icon';import { MatDividerModule } from '@angular/material/divider';import { MatTabsModule } from '@angular/material/tabs';import { MatCardModule } from '@angular/material/card';import { MatTooltipModule } from '@angular/material/tooltip';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatRadioModule } from '@angular/material/radio';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatIconModule } from '@angular/material/icon';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatTabsModule } from '@angular/material/tabs';
+import { MatCardModule } from '@angular/material/card';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatStepperModule } from '@angular/material/stepper';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { fuseAnimations } from '@fuse/animations';
 import { UserService } from 'app/core/user/user.service';
 import { User, UpdateUserRequest } from 'app/core/user/user.types';
@@ -50,7 +63,9 @@ export interface AlergiaAlimentar {
     MatDividerModule,
     MatTabsModule,
     MatCardModule,
-    MatTooltipModule
+    MatTooltipModule,
+    MatStepperModule,
+    MatProgressBarModule
   ],
   templateUrl: './profile.component.html',
   animations: fuseAnimations
@@ -59,9 +74,22 @@ export class ProfileComponent implements OnInit {
   profileForm: FormGroup;
   editMode = false;
   currentUser: User;
+  isLoading = false;
+  perfilCompleto = false;
 
-  objetivos = Object.values(ObjetivoEnum);
-  niveisAtividade = Object.values(NivelAtividadeEnum);
+  objetivos = [
+    { value: 'PERDER_PESO', label: 'Perder Peso', icon: 'trending_down', color: 'text-red-500' },
+    { value: 'MANTER_PESO', label: 'Manter Peso', icon: 'balance', color: 'text-blue-500' },
+    { value: 'GANHAR_MASSA', label: 'Ganhar Massa Muscular', icon: 'trending_up', color: 'text-green-500' }
+  ];
+
+  niveisAtividade = [
+    { value: 'SEDENTARIO', label: 'Sedentário', desc: 'Pouco ou nenhum exercício' },
+    { value: 'LEVE', label: 'Leve', desc: 'Exercício leve 1-3 dias/semana' },
+    { value: 'MODERADO', label: 'Moderado', desc: 'Exercício moderado 3-5 dias/semana' },
+    { value: 'INTENSO', label: 'Intenso', desc: 'Exercício intenso 6-7 dias/semana' },
+    { value: 'ATLETA', label: 'Atleta', desc: 'Exercício muito intenso, trabalho físico' }
+  ];
 
   alergiasAlimentares: AlergiaAlimentar[] = [
     { id: 'leite', nome: 'Leite e derivados' },
@@ -85,78 +113,42 @@ export class ProfileComponent implements OnInit {
   ];
 
   comorbidades: Comorbidade[] = [
-    { id: 'diabetes', nome: 'Diabetes Mellitus (Tipo 1 e 2)', descricao: 'Redução de açúcares simples, controle de carboidratos.' },
-    { id: 'hipertensao', nome: 'Hipertensão Arterial', descricao: 'Redução de sódio, evitar alimentos industrializados e ultraprocessados.' },
-    { id: 'dislipidemia', nome: 'Dislipidemia (colesterol alto/triglicerídeos)', descricao: 'Redução de gorduras saturadas/trans, aumento de fibras.' },
-    { id: 'obesidade', nome: 'Obesidade', descricao: 'Controle calórico, incentivo a dietas equilibradas e ricas em nutrientes.' },
-    { id: 'doenca_celiaca', nome: 'Doença Celíaca', descricao: 'Eliminação total do glúten (trigo, centeio, cevada e derivados).' },
-    { id: 'intolerancia_lactose', nome: 'Intolerância à Lactose', descricao: 'Restrição de produtos com lactose ou uso de alternativas sem lactose.' },
-    { id: 'doenca_renal', nome: 'Doença Renal Crônica', descricao: 'Controle de proteínas, potássio, fósforo e sódio.' },
-    { id: 'gastrite_ulcera', nome: 'Gastrite/Úlcera', descricao: 'Evitar alimentos ácidos, gordurosos, cafeína e álcool.' },
-    { id: 'sii', nome: 'Síndrome do Intestino Irritável (SII)', descricao: 'Dieta FODMAP (redução de certos carboidratos fermentáveis).' },
-    { id: 'anemia', nome: 'Anemia Ferropriva', descricao: 'Aumento de alimentos ricos em ferro e vitamina C, evitar consumo de café junto às refeições.' },
-    { id: 'tireoide', nome: 'Hipotireoidismo/Hipertireoidismo', descricao: 'Ajustes no consumo de iodo, selênio e alimentos que interferem na tireoide.' },
-    { id: 'gota', nome: 'Gota (ácido úrico elevado)', descricao: 'Redução de carnes vermelhas, vísceras, frutos do mar e bebidas alcoólicas.' },
-    { id: 'esteatose', nome: 'Esteatose Hepática (fígado gorduroso)', descricao: 'Redução de açúcares simples e gorduras, aumento de vegetais e cereais integrais.' },
-    { id: 'crohn_retocolite', nome: 'Doença de Crohn / Retocolite Ulcerativa', descricao: 'Dietas específicas conforme fase da doença (evitar fibras insolúveis em crises).' }
+    { id: 'diabetes', nome: 'Diabetes Mellitus', descricao: 'Controle de carboidratos e açúcares' },
+    { id: 'hipertensao', nome: 'Hipertensão Arterial', descricao: 'Redução de sódio' },
+    { id: 'dislipidemia', nome: 'Colesterol Alto', descricao: 'Redução de gorduras saturadas' },
+    { id: 'obesidade', nome: 'Obesidade', descricao: 'Controle calórico' },
+    { id: 'doenca_celiaca', nome: 'Doença Celíaca', descricao: 'Eliminação total do glúten' },
+    { id: 'intolerancia_lactose', nome: 'Intolerância à Lactose', descricao: 'Restrição de lactose' },
+    { id: 'doenca_renal', nome: 'Doença Renal Crônica', descricao: 'Controle de proteínas e sódio' },
+    { id: 'gastrite_ulcera', nome: 'Gastrite/Úlcera', descricao: 'Evitar alimentos ácidos' },
+    { id: 'sii', nome: 'Síndrome do Intestino Irritável', descricao: 'Dieta FODMAP' },
+    { id: 'anemia', nome: 'Anemia Ferropriva', descricao: 'Aumento de ferro' },
+    { id: 'tireoide', nome: 'Problemas de Tireoide', descricao: 'Ajustes no iodo' },
+    { id: 'gota', nome: 'Gota', descricao: 'Redução de purinas' }
   ];
 
-  alergiasAlimentaresSelecionadas: AlergiaAlimentar[] = [
-    { id: 'leite', nome: 'Leite e derivados' },
-    { id: 'amendoim', nome: 'Amendoim' }
-  ];
-
-  comorbidadesSelecionadas: Comorbidade[] = [
-    { id: 'intolerancia_lactose', nome: 'Intolerância à Lactose', descricao: 'Restrição de produtos com lactose ou uso de alternativas sem lactose.' }
-  ];
+  alergiasAlimentaresSelecionadas: AlergiaAlimentar[] = [];
+  comorbidadesSelecionadas: Comorbidade[] = [];
 
   constructor(
     private _formBuilder: FormBuilder,
     private _userService: UserService,
-    private _notificationService: NotificationService
+    private _notificationService: NotificationService,
+    private _cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
     this.initForm();
-
-    this._userService.getProfile().subscribe({
-      next: (user) => {
-        if (user) {
-          this.currentUser = user;
-          this._userService.user = user;
-          this.fillFormWithUserData();
-        }
-      },
-      error: (error) => {
-        this._notificationService.error('Erro ao carregar dados do perfil');
-      }
-    });
-
-    this.disableForm();
+    this.loadUserProfile();
   }
 
   initForm(): void {
     this.profileForm = this._formBuilder.group({
-      nome: ['', [Validators.required]],
+      nome: ['', [Validators.required, Validators.minLength(2)]],
       email: ['', [Validators.required, Validators.email]],
-      altura: ['', [
-        Validators.required,
-        Validators.min(50),
-        Validators.max(260),
-        Validators.pattern('^[0-9]*$')
-      ]],
-      peso: ['', [
-        Validators.required,
-        Validators.min(10),
-        Validators.max(360),
-        Validators.pattern('^[0-9]+(\\.[0-9]{1,2})?$')
-      ]],
-      idade: ['', [
-        Validators.required,
-        Validators.min(4),
-        Validators.max(120),
-        Validators.pattern('^[0-9]*$')
-      ]],
+      altura: ['', [Validators.required, Validators.min(50), Validators.max(260)]],
+      peso: ['', [Validators.required, Validators.min(10), Validators.max(360)]],
+      idade: ['', [Validators.required, Validators.min(4), Validators.max(120)]],
       sexo: ['', [Validators.required]],
       nivelAtividade: ['', [Validators.required]],
       objetivo: ['', [Validators.required]],
@@ -166,27 +158,52 @@ export class ProfileComponent implements OnInit {
       comorbidades: this._formBuilder.array([])
     });
 
-    this.profileForm.get('semAlergias').valueChanges.subscribe(valor => {
+    this.setupFormWatchers();
+    this.disableForm();
+  }
+
+  setupFormWatchers(): void {
+    this.profileForm.get('semAlergias')?.valueChanges.subscribe(valor => {
       if (valor) {
         this.alergiasAlimentaresSelecionadas = [];
         this.alergiasFormArray.clear();
       }
     });
 
-    this.profileForm.get('semComorbidades').valueChanges.subscribe(valor => {
+    this.profileForm.get('semComorbidades')?.valueChanges.subscribe(valor => {
       if (valor) {
         this.comorbidadesSelecionadas = [];
         this.comorbidadesFormArray.clear();
       }
     });
+
+    this.profileForm.valueChanges.subscribe(() => {
+      this.avaliarPerfilCompleto();
+    });
+  }
+
+  loadUserProfile(): void {
+    this.isLoading = true;
+    this._userService.getProfile().subscribe({
+      next: (user) => {
+        if (user) {
+          this.currentUser = user;
+          this.fillFormWithUserData();
+          this.avaliarPerfilCompleto();
+        }
+        this.isLoading = false;
+      },
+      error: (error) => {
+        this._notificationService.error('Erro ao carregar dados do perfil');
+        this.isLoading = false;
+      }
+    });
   }
 
   fillFormWithUserData(): void {
-    if (!this.currentUser) {
-      return;
-    }
+    if (!this.currentUser) return;
 
-    const formData = {
+    this.profileForm.patchValue({
       nome: this.currentUser.nome || '',
       email: this.currentUser.email || '',
       altura: this.currentUser.altura || '',
@@ -197,25 +214,16 @@ export class ProfileComponent implements OnInit {
       objetivo: this.currentUser.objetivoDieta || '',
       semAlergias: false,
       semComorbidades: false
-    };
+    });
+  }
 
-    this.profileForm.patchValue(formData);
+  avaliarPerfilCompleto(): void {
+    const camposObrigatorios = ['nome', 'email', 'altura', 'peso', 'idade', 'sexo', 'nivelAtividade', 'objetivo'];
+    const formValues = this.profileForm.value;
 
-    if (this.editMode) {
-      this.enableForm();
-    }
-
-    // if (!this.currentUser.semAlergias) {
-    //   this.alergiasAlimentaresSelecionadas.forEach(alergia => {
-    //     this.alergiasFormArray.push(new FormControl(alergia.id));
-    //   });
-    // }
-
-    // if (!this.currentUser.semComorbidades) {
-    //   this.comorbidadesSelecionadas.forEach(comorbidade => {
-    //     this.comorbidadesFormArray.push(new FormControl(comorbidade.id));
-    //   });
-    // }
+    this.perfilCompleto = camposObrigatorios.every(campo =>
+      formValues[campo] && formValues[campo].toString().trim() !== ''
+    );
   }
 
   get alergiasFormArray(): FormArray {
@@ -226,18 +234,30 @@ export class ProfileComponent implements OnInit {
     return this.profileForm.get('comorbidades') as FormArray;
   }
 
+  get porcentagemCompleta(): number {
+    const camposObrigatorios = ['nome', 'email', 'altura', 'peso', 'idade', 'sexo', 'nivelAtividade', 'objetivo'];
+    const formValues = this.profileForm.value;
+
+    const camposPreenchidos = camposObrigatorios.filter(campo =>
+      formValues[campo] && formValues[campo].toString().trim() !== ''
+    ).length;
+
+    return Math.round((camposPreenchidos / camposObrigatorios.length) * 100);
+  }
+
   toggleEditMode(): void {
     this.editMode = !this.editMode;
     if (this.editMode) {
       this.enableForm();
     } else {
       this.disableForm();
+      this.fillFormWithUserData();
     }
   }
 
   enableForm(): void {
     this.profileForm.enable();
-    this.profileForm.get('email').disable();
+    this.profileForm.get('email')?.disable();
   }
 
   disableForm(): void {
@@ -253,132 +273,135 @@ export class ProfileComponent implements OnInit {
   }
 
   toggleAlergia(alergia: AlergiaAlimentar, event: any): void {
-    if (this.profileForm.get('semAlergias').value) {
-      event.source.checked = false;
-      return;
-    }
-
-    const index = this.alergiasAlimentaresSelecionadas.findIndex(a => a.id === alergia.id);
-
     if (event.checked) {
-      if (index === -1) {
-        this.alergiasAlimentaresSelecionadas.push(alergia);
-        this.alergiasFormArray.push(new FormControl(alergia.id));
-      }
+      this.alergiasAlimentaresSelecionadas.push(alergia);
+      this.alergiasFormArray.push(this._formBuilder.control(alergia.id));
     } else {
-      if (index > -1) {
-        this.alergiasAlimentaresSelecionadas.splice(index, 1);
-        this.removeControlFromArray(this.alergiasFormArray, alergia.id);
-      }
+      this.removerAlergia(alergia);
     }
   }
 
   toggleComorbidade(comorbidade: Comorbidade, event: any): void {
-    if (this.profileForm.get('semComorbidades').value) {
-      event.source.checked = false;
-      return;
-    }
-
-    const index = this.comorbidadesSelecionadas.findIndex(c => c.id === comorbidade.id);
-
     if (event.checked) {
-      if (index === -1) {
-        this.comorbidadesSelecionadas.push(comorbidade);
-        this.comorbidadesFormArray.push(new FormControl(comorbidade.id));
-      }
+      this.comorbidadesSelecionadas.push(comorbidade);
+      this.comorbidadesFormArray.push(this._formBuilder.control(comorbidade.id));
     } else {
-      if (index > -1) {
-        this.comorbidadesSelecionadas.splice(index, 1);
-        this.removeControlFromArray(this.comorbidadesFormArray, comorbidade.id);
-      }
+      this.removerComorbidade(comorbidade);
     }
   }
 
   removerAlergia(alergia: AlergiaAlimentar): void {
-    const index = this.alergiasAlimentaresSelecionadas.findIndex(a => a.id === alergia.id);
-    if (index > -1) {
-      this.alergiasAlimentaresSelecionadas.splice(index, 1);
-      this.removeControlFromArray(this.alergiasFormArray, alergia.id);
-    }
+    this.alergiasAlimentaresSelecionadas = this.alergiasAlimentaresSelecionadas.filter(a => a.id !== alergia.id);
+    this.removeControlFromArray(this.alergiasFormArray, alergia.id);
   }
 
   removerComorbidade(comorbidade: Comorbidade): void {
-    const index = this.comorbidadesSelecionadas.findIndex(c => c.id === comorbidade.id);
-    if (index > -1) {
-      this.comorbidadesSelecionadas.splice(index, 1);
-      this.removeControlFromArray(this.comorbidadesFormArray, comorbidade.id);
-    }
+    this.comorbidadesSelecionadas = this.comorbidadesSelecionadas.filter(c => c.id !== comorbidade.id);
+    this.removeControlFromArray(this.comorbidadesFormArray, comorbidade.id);
   }
 
   private removeControlFromArray(formArray: FormArray, value: string): void {
-    const index = (formArray.value as string[]).findIndex(val => val === value);
-    if (index > -1) {
+    const index = formArray.controls.findIndex(control => control.value === value);
+    if (index !== -1) {
       formArray.removeAt(index);
     }
   }
 
   submitForm(): void {
-    if (this.profileForm.valid) {
-      const formData = this.profileForm.value;
-
-      const updateData: UpdateUserRequest = {
-        nome: formData.nome,
-        altura: formData.altura,
-        peso: formData.peso,
-        idade: formData.idade,
-        sexo: formData.sexo,
-        nivelAtividade: formData.nivelAtividade,
-        objetivoDieta: formData.objetivo,
-        preRegister: true
-      };
-
-      this._userService.update(updateData).subscribe({
-        next: (response) => {
-          this.currentUser = response;
-
-          this._userService.user = response;
-
-          this._userService.getProfile().subscribe({
-            next: (user) => {
-              this.currentUser = user;
-              this.fillFormWithUserData();
-
-              this._notificationService.success('Perfil atualizado com sucesso!');
-
-              this.toggleEditMode();
-            },
-            error: (error) => {
-              this._notificationService.error('Erro ao recarregar dados do perfil');
-            }
-          });
-        },
-        error: (error) => {
-          const errorMessage = error.error?.message || 'Erro ao atualizar perfil. Tente novamente.';
-          this._notificationService.error(errorMessage);
-        }
-      });
-    } else {
-      Object.keys(this.profileForm.controls).forEach(key => {
-        const control = this.profileForm.get(key);
-        control?.markAsTouched();
-      });
-
-      this._notificationService.warning('Por favor, corrija os erros no formulário');
+    if (this.profileForm.invalid) {
+      this.profileForm.markAllAsTouched();
+      this._notificationService.error('Por favor, preencha todos os campos obrigatórios');
+      return;
     }
+
+    this.isLoading = true;
+    const formData = this.profileForm.value;
+
+    const updateRequest: UpdateUserRequest = {
+      nome: formData.nome,
+      altura: parseInt(formData.altura),
+      peso: parseFloat(formData.peso),
+      idade: parseInt(formData.idade),
+      sexo: formData.sexo,
+      nivelAtividade: formData.nivelAtividade,
+      objetivoDieta: formData.objetivo,
+      preRegister: true
+    };
+
+              this._userService.update(updateRequest).subscribe({
+       next: (response) => {
+         this.currentUser = response;
+         this._userService.user = response;
+        this.editMode = false;
+        this.disableForm();
+        this.isLoading = false;
+        this._notificationService.success('Perfil atualizado com sucesso!');
+        this.avaliarPerfilCompleto();
+      },
+      error: (error) => {
+        this.isLoading = false;
+        this._notificationService.error('Erro ao atualizar perfil. Tente novamente.');
+      }
+    });
   }
 
   cancelEdit(): void {
-    this._userService.getProfile().subscribe({
-      next: (user) => {
-        this.currentUser = user;
-        this.fillFormWithUserData();
+    this.editMode = false;
+    this.disableForm();
+    this.fillFormWithUserData();
+  }
 
-        this.toggleEditMode();
-      },
-      error: (error) => {
-        this._notificationService.error('Erro ao recarregar dados do perfil');
-        this.toggleEditMode();
-      }
-    });
+  calcularIMC(): number {
+    if (!this.currentUser?.altura || !this.currentUser?.peso) return 0;
+    const alturaM = this.currentUser.altura / 100;
+    return Math.round((this.currentUser.peso / (alturaM * alturaM)) * 10) / 10;
+  }
+
+  classificarIMC(): string {
+    const imc = this.calcularIMC();
+    if (imc < 18.5) return 'Abaixo do peso';
+    if (imc < 25) return 'Peso normal';
+    if (imc < 30) return 'Sobrepeso';
+    return 'Obesidade';
+  }
+
+  obterCorIMC(): string {
+    const imc = this.calcularIMC();
+    if (imc < 18.5 || imc >= 30) return 'text-red-500';
+    if (imc >= 25) return 'text-yellow-500';
+    return 'text-green-500';
+  }
+
+  obterLabelNivelAtividade(): string {
+    const nivel = this.niveisAtividade.find(n => n.value === this.currentUser?.nivelAtividade);
+    return nivel ? nivel.label : 'Não informado';
+  }
+
+  obterLabelObjetivo(): string {
+    const objetivo = this.objetivos.find(o => o.value === this.currentUser?.objetivoDieta);
+    return objetivo ? objetivo.label : 'Não informado';
+  }
+
+  obterIconeObjetivo(): string {
+    const objetivo = this.objetivos.find(o => o.value === this.currentUser?.objetivoDieta);
+    return objetivo ? objetivo.icon : 'flag';
+  }
+
+  obterCorObjetivo(): string {
+    const objetivo = this.objetivos.find(o => o.value === this.currentUser?.objetivoDieta);
+    return objetivo ? objetivo.color : 'text-gray-500';
+  }
+
+  getFieldError(fieldName: string): string {
+    const field = this.profileForm.get(fieldName);
+    if (!field || !field.errors || !field.touched) return '';
+
+    if (field.errors['required']) return 'Este campo é obrigatório';
+    if (field.errors['email']) return 'Email inválido';
+    if (field.errors['minlength']) return `Mínimo ${field.errors['minlength'].requiredLength} caracteres`;
+    if (field.errors['min']) return `Valor mínimo: ${field.errors['min'].min}`;
+    if (field.errors['max']) return `Valor máximo: ${field.errors['max'].max}`;
+
+    return 'Campo inválido';
   }
 }

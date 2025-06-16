@@ -234,7 +234,6 @@ export class PlanoAlimentarAceitarComponent implements OnInit {
             )
             .subscribe({
                 next: (response) => {
-                    console.log('Plano gerado (sem salvar refeições):', response);
                     this.resultado = response;
                     this.planoSemanal = response.plano_alimentar_semanal;
                     this.organizarPlanoSemanal();
@@ -242,7 +241,6 @@ export class PlanoAlimentarAceitarComponent implements OnInit {
                     this._snackBar.open('Plano alimentar gerado com sucesso! Aceite as refeições que desejar.', 'Fechar', { duration: 3000 });
                 },
                 error: (error) => {
-                    console.error('Erro ao gerar plano:', error);
                     this._snackBar.open('Erro ao gerar plano alimentar', 'Fechar', { duration: 5000 });
                 }
             });
@@ -449,7 +447,8 @@ export class PlanoAlimentarAceitarComponent implements OnInit {
 
     private obterDataParaDia(diaSemana: string): Date {
         const hoje = new Date();
-        const diaAtual = hoje.getDay();
+        const dataBase = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+        const diaAtual = dataBase.getDay();
 
         const diasSemanaMap: { [key: string]: number } = {
             'Segunda-feira': 1,
@@ -464,12 +463,16 @@ export class PlanoAlimentarAceitarComponent implements OnInit {
         const diaDesejado = diasSemanaMap[diaSemana];
         let diasParaAdicionar = diaDesejado - diaAtual;
 
+        if (diasParaAdicionar === 0) {
+            return new Date(dataBase);
+        }
+
         if (diasParaAdicionar < 0) {
             diasParaAdicionar += 7;
         }
 
-        const dataResultado = new Date(hoje);
-        dataResultado.setDate(hoje.getDate() + diasParaAdicionar);
+        const dataResultado = new Date(dataBase);
+        dataResultado.setDate(dataBase.getDate() + diasParaAdicionar);
         return dataResultado;
     }
 

@@ -1,261 +1,388 @@
-<div class="flex flex-col flex-auto min-w-0">
-
-    <div class="flex-auto p-6 sm:p-10">
-
-        <div class="flex flex-wrap items-center justify-between">
-            <div>
-                <div class="text-3xl font-semibold tracking-tight leading-8">Perfil</div>
-                <div class="font-medium tracking-tight text-secondary">Gerenciar meu perfil e informações dietéticas</div>
-            </div>
-            <div class="flex items-center mt-4 sm:mt-0">
+<div class="flex flex-col min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold">Perfil</h1>
+                    <p class="text-indigo-100 mt-1">Gerenciar meu perfil e informações dietéticas</p>
+                </div>
                 <button
-                    *ngIf="!editMode"
                     mat-flat-button
-                    [color]="'primary'"
-                    (click)="toggleEditMode()">
-                    <mat-icon class="icon-size-5 mr-2" [svgIcon]="'heroicons_solid:pencil'"></mat-icon>
-                    Editar
+                    [color]="editMode ? 'warn' : 'primary'"
+                    (click)="toggleEditMode()"
+                    [disabled]="isLoading"
+                    class="bg-white text-indigo-600 hover:bg-gray-50">
+                    <mat-icon class="mr-2">{{ editMode ? 'close' : 'edit' }}</mat-icon>
+                    {{ editMode ? 'Cancelar' : 'Editar' }}
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="bg-white border-b" *ngIf="!perfilCompleto">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-sm font-medium text-gray-700">Completude do Perfil</span>
+                <span class="text-sm text-gray-500">{{ porcentagemCompleta }}%</span>
+            </div>
+            <mat-progress-bar
+                [value]="porcentagemCompleta"
+                [color]="porcentagemCompleta === 100 ? 'primary' : 'accent'"
+                class="h-2 rounded-full">
+            </mat-progress-bar>
+            <p class="text-xs text-gray-500 mt-1">Complete todas as informações para uma experiência personalizada</p>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex justify-center px-4 sm:px-6 lg:px-8 py-8">
+        <div class="w-full max-w-4xl">
+            <form [formGroup]="profileForm" (ngSubmit)="submitForm()" class="space-y-8">
+
+            <!-- Informações Básicas -->
+            <mat-card class="overflow-hidden">
+                <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6">
+                    <div class="flex items-center">
+                        <mat-icon class="text-3xl mr-3">person</mat-icon>
+                        <div>
+                            <h2 class="text-xl font-semibold">Informações Básicas</h2>
+                            <p class="text-blue-100 text-sm">Dados pessoais e de contato</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Nome -->
+                        <mat-form-field appearance="outline" class="w-full">
+                            <mat-label>Nome Completo</mat-label>
+                            <input matInput formControlName="nome" placeholder="Digite seu nome completo">
+                            <mat-icon matSuffix>person</mat-icon>
+                            <mat-error>{{ getFieldError('nome') }}</mat-error>
+                        </mat-form-field>
+
+                        <!-- Email -->
+                        <mat-form-field appearance="outline" class="w-full">
+                            <mat-label>Email</mat-label>
+                            <input matInput formControlName="email" type="email" placeholder="seu@email.com">
+                            <mat-icon matSuffix>email</mat-icon>
+                            <mat-error>{{ getFieldError('email') }}</mat-error>
+                            <mat-hint>Este campo não pode ser alterado</mat-hint>
+                        </mat-form-field>
+                    </div>
+                </div>
+            </mat-card>
+
+            <!-- Medidas e Objetivos -->
+            <mat-card class="overflow-hidden">
+                <div class="bg-gradient-to-r from-green-500 to-green-600 text-white p-6">
+                    <div class="flex items-center">
+                        <mat-icon class="text-3xl mr-3">fitness_center</mat-icon>
+                        <div>
+                            <h2 class="text-xl font-semibold">Medidas e Objetivos</h2>
+                            <p class="text-green-100 text-sm">Informações físicas e metas nutricionais</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-6">
+                    <!-- IMC Card (quando não está editando) -->
+                    <div *ngIf="!editMode && currentUser" class="bg-gray-50 rounded-lg p-4 mb-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="font-medium text-gray-800">Índice de Massa Corporal (IMC)</h3>
+                                <p class="text-sm text-gray-600">{{ classificarIMC() }}</p>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-2xl font-bold" [class]="obterCorIMC()">{{ calcularIMC() }}</div>
+                                <div class="text-xs text-gray-500">kg/m²</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                        <!-- Altura -->
+                        <mat-form-field appearance="outline" class="w-full">
+                            <mat-label>Altura</mat-label>
+                            <input matInput formControlName="altura" type="number" placeholder="175">
+                            <span matSuffix>cm</span>
+                            <mat-error>{{ getFieldError('altura') }}</mat-error>
+                        </mat-form-field>
+
+                        <!-- Peso -->
+                        <mat-form-field appearance="outline" class="w-full">
+                            <mat-label>Peso</mat-label>
+                            <input matInput formControlName="peso" type="number" step="0.1" placeholder="70.5">
+                            <span matSuffix>kg</span>
+                            <mat-error>{{ getFieldError('peso') }}</mat-error>
+                        </mat-form-field>
+
+                        <!-- Idade -->
+                        <mat-form-field appearance="outline" class="w-full">
+                            <mat-label>Idade</mat-label>
+                            <input matInput formControlName="idade" type="number" placeholder="25">
+                            <span matSuffix>anos</span>
+                            <mat-error>{{ getFieldError('idade') }}</mat-error>
+                        </mat-form-field>
+                    </div>
+
+                    <!-- Sexo -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-3">Sexo Biológico</label>
+                        <mat-radio-group formControlName="sexo" class="flex gap-6">
+                            <mat-radio-button value="MASCULINO" class="flex items-center">
+                                <mat-icon class="mr-2">male</mat-icon>
+                                Masculino
+                            </mat-radio-button>
+                            <mat-radio-button value="FEMININO" class="flex items-center">
+                                <mat-icon class="mr-2">female</mat-icon>
+                                Feminino
+                            </mat-radio-button>
+                        </mat-radio-group>
+                    </div>
+
+                    <!-- Nível de Atividade -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-3">Nível de Atividade Física</label>
+                        <mat-form-field appearance="outline" class="w-full">
+                            <mat-label>Selecione seu nível</mat-label>
+                            <mat-select formControlName="nivelAtividade">
+                                <mat-option *ngFor="let nivel of niveisAtividade" [value]="nivel.value">
+                                    <div class="py-2">
+                                        <div class="font-medium">{{ nivel.label }}</div>
+                                        <div class="text-sm text-gray-500">{{ nivel.desc }}</div>
+                                    </div>
+                                </mat-option>
+                            </mat-select>
+                            <mat-error>{{ getFieldError('nivelAtividade') }}</mat-error>
+                        </mat-form-field>
+                    </div>
+
+                                         <!-- Objetivo -->
+                     <div class="mb-6">
+                         <label class="block text-sm font-medium text-gray-700 mb-3">Objetivo Nutricional</label>
+                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                             <div *ngFor="let objetivo of objetivos"
+                                  class="relative rounded-lg border-2 p-4 transition-all"
+                                  [class.cursor-pointer]="editMode"
+                                  [class.hover:shadow-md]="editMode"
+                                  [class.opacity-60]="!editMode"
+                                  [class]="profileForm.get('objetivo')?.value === objetivo.value ?
+                                          'border-indigo-500 bg-indigo-50' : 'border-gray-200'"
+                                  [class.hover:border-gray-300]="editMode && profileForm.get('objetivo')?.value !== objetivo.value"
+                                  (click)="editMode ? profileForm.patchValue({objetivo: objetivo.value}) : null">
+
+                                <div class="flex flex-col items-center text-center">
+                                    <mat-icon [class]="objetivo.color + ' text-3xl mb-2'">{{ objetivo.icon }}</mat-icon>
+                                    <h4 class="font-medium text-gray-800 mb-1">{{ objetivo.label }}</h4>
+                                </div>
+
+                                <!-- Indicador de seleção -->
+                                <div *ngIf="profileForm.get('objetivo')?.value === objetivo.value"
+                                     class="absolute top-2 right-2 w-6 h-6 bg-indigo-500 rounded-full flex items-center justify-center">
+                                    <mat-icon class="text-white text-sm">check</mat-icon>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </mat-card>
+
+            <!-- Alergias Alimentares -->
+            <mat-card class="overflow-hidden">
+                <div class="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-6">
+                    <div class="flex items-center">
+                        <mat-icon class="text-3xl mr-3">warning</mat-icon>
+                        <div>
+                            <h2 class="text-xl font-semibold">Alergias Alimentares</h2>
+                            <p class="text-orange-100 text-sm">Informe suas restrições alimentares</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-6">
+                                         <!-- Checkbox sem alergias -->
+                     <div class="mb-4">
+                         <mat-checkbox
+                             formControlName="semAlergias"
+                             class="text-gray-700"
+                             [disabled]="!editMode">
+                             Não possuo alergias alimentares
+                         </mat-checkbox>
+                     </div>
+
+                     <!-- Lista de alergias -->
+                     <div *ngIf="!profileForm.get('semAlergias')?.value" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                         <mat-checkbox
+                             *ngFor="let alergia of alergiasAlimentares"
+                             [checked]="isAlergiaSelected(alergia)"
+                             (change)="toggleAlergia(alergia, $event)"
+                             [disabled]="!editMode"
+                             class="text-sm">
+                             {{ alergia.nome }}
+                         </mat-checkbox>
+                     </div>
+
+                                         <!-- Alergias selecionadas -->
+                     <div *ngIf="alergiasAlimentaresSelecionadas.length > 0" class="mt-4">
+                         <h4 class="text-sm font-medium text-gray-700 mb-2">Alergias Selecionadas:</h4>
+                         <div class="flex flex-wrap gap-2">
+                             <mat-chip-set>
+                                 <mat-chip *ngFor="let alergia of alergiasAlimentaresSelecionadas"
+                                          (removed)="editMode ? removerAlergia(alergia) : null"
+                                          [removable]="editMode">
+                                     {{ alergia.nome }}
+                                     <mat-icon matChipRemove *ngIf="editMode">cancel</mat-icon>
+                                 </mat-chip>
+                             </mat-chip-set>
+                         </div>
+                     </div>
+                </div>
+            </mat-card>
+
+            <!-- Comorbidades -->
+            <mat-card class="overflow-hidden">
+                <div class="bg-gradient-to-r from-red-500 to-red-600 text-white p-6">
+                    <div class="flex items-center">
+                        <mat-icon class="text-3xl mr-3">medical_services</mat-icon>
+                        <div>
+                            <h2 class="text-xl font-semibold">Condições de Saúde</h2>
+                            <p class="text-red-100 text-sm">Informe condições que afetam sua dieta</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-6">
+                                         <!-- Checkbox sem comorbidades -->
+                     <div class="mb-4">
+                         <mat-checkbox
+                             formControlName="semComorbidades"
+                             class="text-gray-700"
+                             [disabled]="!editMode">
+                             Não possuo condições de saúde que afetem minha dieta
+                         </mat-checkbox>
+                     </div>
+
+                     <!-- Lista de comorbidades -->
+                     <div *ngIf="!profileForm.get('semComorbidades')?.value" class="space-y-3">
+                         <div *ngFor="let comorbidade of comorbidades"
+                              class="border rounded-lg p-3 transition-colors"
+                              [class.hover:bg-gray-50]="editMode"
+                              [class.opacity-60]="!editMode">
+                             <mat-checkbox
+                                 [checked]="isComorbidadeSelected(comorbidade)"
+                                 (change)="toggleComorbidade(comorbidade, $event)"
+                                 [disabled]="!editMode"
+                                 class="w-full">
+                                 <div class="ml-2">
+                                     <div class="font-medium text-gray-800">{{ comorbidade.nome }}</div>
+                                     <div class="text-sm text-gray-600">{{ comorbidade.descricao }}</div>
+                                 </div>
+                             </mat-checkbox>
+                         </div>
+                     </div>
+
+                                         <!-- Comorbidades selecionadas -->
+                     <div *ngIf="comorbidadesSelecionadas.length > 0" class="mt-4">
+                         <h4 class="text-sm font-medium text-gray-700 mb-2">Condições Selecionadas:</h4>
+                         <div class="flex flex-wrap gap-2">
+                             <mat-chip-set>
+                                 <mat-chip *ngFor="let comorbidade of comorbidadesSelecionadas"
+                                          (removed)="editMode ? removerComorbidade(comorbidade) : null"
+                                          [removable]="editMode">
+                                     {{ comorbidade.nome }}
+                                     <mat-icon matChipRemove *ngIf="editMode">cancel</mat-icon>
+                                 </mat-chip>
+                             </mat-chip-set>
+                         </div>
+                     </div>
+                </div>
+            </mat-card>
+
+            <!-- Resumo do Perfil (quando não está editando) -->
+            <mat-card *ngIf="!editMode && currentUser" class="overflow-hidden">
+                <div class="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-6">
+                    <div class="flex items-center">
+                        <mat-icon class="text-3xl mr-3">summarize</mat-icon>
+                        <div>
+                            <h2 class="text-xl font-semibold">Resumo do Perfil</h2>
+                            <p class="text-purple-100 text-sm">Visão geral das suas informações</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <!-- IMC -->
+                        <div class="text-center p-4 bg-gray-50 rounded-lg">
+                            <div class="text-2xl font-bold mb-1" [class]="obterCorIMC()">{{ calcularIMC() }}</div>
+                            <div class="text-sm text-gray-600">IMC</div>
+                            <div class="text-xs text-gray-500">{{ classificarIMC() }}</div>
+                        </div>
+
+                        <!-- Nível de Atividade -->
+                        <div class="text-center p-4 bg-gray-50 rounded-lg">
+                            <mat-icon class="text-2xl text-blue-500 mb-1">fitness_center</mat-icon>
+                            <div class="text-sm text-gray-600">Atividade</div>
+                            <div class="text-xs text-gray-500">{{ obterLabelNivelAtividade() }}</div>
+                        </div>
+
+                        <!-- Objetivo -->
+                        <div class="text-center p-4 bg-gray-50 rounded-lg">
+                            <mat-icon class="text-2xl mb-1" [class]="obterCorObjetivo()">{{ obterIconeObjetivo() }}</mat-icon>
+                            <div class="text-sm text-gray-600">Objetivo</div>
+                            <div class="text-xs text-gray-500">{{ obterLabelObjetivo() }}</div>
+                        </div>
+
+                        <!-- Status -->
+                        <div class="text-center p-4 bg-gray-50 rounded-lg">
+                            <mat-icon class="text-2xl mb-1" [class]="perfilCompleto ? 'text-green-500' : 'text-yellow-500'">
+                                {{ perfilCompleto ? 'check_circle' : 'pending' }}
+                            </mat-icon>
+                            <div class="text-sm text-gray-600">Perfil</div>
+                            <div class="text-xs text-gray-500">{{ perfilCompleto ? 'Completo' : 'Incompleto' }}</div>
+                        </div>
+                    </div>
+                </div>
+            </mat-card>
+
+            <!-- Botões de Ação -->
+            <div *ngIf="editMode" class="flex justify-end gap-4 pt-6">
                 <button
-                    *ngIf="editMode"
-                    mat-flat-button
-                    [color]="'warn'"
-                    class="mr-2"
-                    (click)="cancelEdit()">
+                    type="button"
+                    mat-stroked-button
+                    (click)="cancelEdit()"
+                    [disabled]="isLoading"
+                    class="min-w-32">
                     Cancelar
                 </button>
                 <button
-                    *ngIf="editMode"
+                    type="submit"
                     mat-flat-button
-                    [color]="'primary'"
-                    (click)="submitForm()">
-                    Salvar alterações
+                    color="primary"
+                    [disabled]="profileForm.invalid || isLoading"
+                    class="min-w-32">
+                    <span *ngIf="isLoading" class="flex items-center">
+                        <mat-icon class="animate-spin mr-2 text-sm">refresh</mat-icon>
+                        Salvando...
+                    </span>
+                    <span *ngIf="!isLoading">
+                        <mat-icon class="mr-2">save</mat-icon>
+                        Salvar Alterações
+                    </span>
                 </button>
-            </div>
+                         </div>
+         </form>
         </div>
+     </div>
+ </div>
 
-        <div class="mt-8 max-w-4xl">
-            <form [formGroup]="profileForm" class="flex flex-col gap-y-6">
-
-                <!-- Informações básicas -->
-                <div class="bg-card shadow rounded-lg overflow-hidden">
-                    <div class="flex items-center p-6 pb-0">
-                        <div class="text-lg font-medium">Informações Básicas</div>
-                    </div>
-                    <div class="p-6">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                            <!-- Nome -->
-                            <mat-form-field class="w-full">
-                                <mat-label>Nome</mat-label>
-                                <input matInput formControlName="nome">
-                                <mat-error *ngIf="profileForm.get('nome').hasError('required')">
-                                    Nome é obrigatório
-                                </mat-error>
-                            </mat-form-field>
-
-                            <!-- Email -->
-                            <mat-form-field class="w-full">
-                                <mat-label>Email</mat-label>
-                                <input matInput formControlName="email">
-                                <mat-error *ngIf="profileForm.get('email').hasError('required')">
-                                    Email é obrigatório
-                                </mat-error>
-                                <mat-error *ngIf="profileForm.get('email').hasError('email')">
-                                    Formato de email inválido
-                                </mat-error>
-                            </mat-form-field>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Medidas e Objetivos -->
-                <div class="bg-card shadow rounded-lg overflow-hidden">
-                    <div class="flex items-center p-6 pb-0">
-                        <div class="text-lg font-medium">Medidas e Objetivos</div>
-                    </div>
-                    <div class="p-6">
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                            <!-- Altura -->
-                            <mat-form-field class="w-full">
-                                <mat-label>Altura (cm)</mat-label>
-                                <input matInput formControlName="altura" type="number">
-                                <mat-error *ngIf="profileForm.get('altura').hasError('required')">
-                                    Altura é obrigatória
-                                </mat-error>
-                                <mat-error *ngIf="profileForm.get('altura').hasError('min')">
-                                    Altura mínima: 50cm
-                                </mat-error>
-                                <mat-error *ngIf="profileForm.get('altura').hasError('max')">
-                                    Altura máxima: 260cm
-                                </mat-error>
-                            </mat-form-field>
-
-                            <!-- Peso -->
-                            <mat-form-field class="w-full">
-                                <mat-label>Peso (kg)</mat-label>
-                                <input matInput formControlName="peso" type="number" step="0.1">
-                                <mat-error *ngIf="profileForm.get('peso').hasError('required')">
-                                    Peso é obrigatório
-                                </mat-error>
-                                <mat-error *ngIf="profileForm.get('peso').hasError('min')">
-                                    Peso mínimo: 10kg
-                                </mat-error>
-                                <mat-error *ngIf="profileForm.get('peso').hasError('max')">
-                                    Peso máximo: 360kg
-                                </mat-error>
-                            </mat-form-field>
-
-                            <!-- Idade -->
-                            <mat-form-field class="w-full">
-                                <mat-label>Idade</mat-label>
-                                <input matInput formControlName="idade" type="number">
-                                <mat-error *ngIf="profileForm.get('idade').hasError('required')">
-                                    Idade é obrigatória
-                                </mat-error>
-                                <mat-error *ngIf="profileForm.get('idade').hasError('min')">
-                                    Idade mínima: 4 anos
-                                </mat-error>
-                                <mat-error *ngIf="profileForm.get('idade').hasError('max')">
-                                    Idade máxima: 120 anos
-                                </mat-error>
-                            </mat-form-field>
-                        </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-6">
-                            <!-- Sexo -->
-                            <div>
-                                <div class="text-secondary mb-2">Sexo</div>
-                                <mat-radio-group formControlName="sexo" class="flex flex-col gap-2">
-                                    <mat-radio-button value="MASCULINO">Masculino</mat-radio-button>
-                                    <mat-radio-button value="FEMININO">Feminino</mat-radio-button>
-                                </mat-radio-group>
-                                <mat-error *ngIf="profileForm.get('sexo').touched && profileForm.get('sexo').hasError('required')" class="text-red-500 text-sm mt-1">
-                                    Sexo é obrigatório
-                                </mat-error>
-                            </div>
-
-                            <!-- Nível de Atividade -->
-                            <mat-form-field class="w-full">
-                                <mat-label>Nível de Atividade</mat-label>
-                                <mat-select formControlName="nivelAtividade">
-                                    <mat-option value="SEDENTARIO">Sedentário</mat-option>
-                                    <mat-option value="LEVE">Levemente ativo</mat-option>
-                                    <mat-option value="MODERADO">Moderadamente ativo</mat-option>
-                                    <mat-option value="INTENSO">Muito ativo</mat-option>
-                                    <mat-option value="ATLETA">Extremamente ativo (atleta)</mat-option>
-                                </mat-select>
-                                <mat-error *ngIf="profileForm.get('nivelAtividade').hasError('required')">
-                                    Nível de atividade é obrigatório
-                                </mat-error>
-                            </mat-form-field>
-
-                            <!-- Objetivo -->
-                            <mat-form-field class="w-full">
-                                <mat-label>Objetivo</mat-label>
-                                <mat-select formControlName="objetivo">
-                                    <mat-option value="PERDER_PESO">Perder peso</mat-option>
-                                    <mat-option value="MANTER_PESO">Manter peso atual</mat-option>
-                                    <mat-option value="GANHAR_MASSA">Ganhar massa muscular</mat-option>
-                                </mat-select>
-                                <mat-error *ngIf="profileForm.get('objetivo').hasError('required')">
-                                    Objetivo é obrigatório
-                                </mat-error>
-                            </mat-form-field>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Alergias Alimentares -->
-                <div class="bg-card shadow rounded-lg overflow-hidden">
-                    <div class="flex items-center p-6 pb-0">
-                        <div class="text-lg font-medium">Alergias Alimentares</div>
-                    </div>
-                    <div class="p-6">
-                        <div class="mb-4">
-                            <mat-checkbox formControlName="semAlergias">Não possuo alergias alimentares</mat-checkbox>
-                        </div>
-
-                        <div *ngIf="!profileForm.get('semAlergias').value" class="mt-4">
-                            <div class="font-medium mb-2">Selecione suas alergias:</div>
-
-                            <!-- Exibir chips das alergias já selecionadas -->
-                            <div class="flex flex-wrap gap-2 mb-4" *ngIf="alergiasAlimentaresSelecionadas.length > 0">
-                                <mat-chip-set>
-                                    <mat-chip *ngFor="let alergia of alergiasAlimentaresSelecionadas"
-                                            [removable]="editMode"
-                                            (removed)="removerAlergia(alergia)">
-                                        {{alergia.nome}}
-                                        <mat-icon matChipRemove *ngIf="editMode">cancel</mat-icon>
-                                    </mat-chip>
-                                </mat-chip-set>
-                            </div>
-
-                            <!-- Lista de alergias disponíveis (visível apenas em modo de edição) -->
-                            <div *ngIf="editMode" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-4">
-                                <div *ngFor="let alergia of alergiasAlimentares">
-                                    <mat-checkbox
-                                        [checked]="isAlergiaSelected(alergia)"
-                                        (change)="toggleAlergia(alergia, $event)"
-                                        [disabled]="profileForm.get('semAlergias').value">
-                                        {{alergia.nome}}
-                                    </mat-checkbox>
-                                </div>
-                            </div>
-
-                            <div *ngIf="!editMode && alergiasAlimentaresSelecionadas.length === 0" class="text-secondary italic">
-                                Nenhuma alergia alimentar selecionada.
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Comorbidades -->
-                <div class="bg-card shadow rounded-lg overflow-hidden">
-                    <div class="flex items-center p-6 pb-0">
-                        <div class="text-lg font-medium">Comorbidades</div>
-                    </div>
-                    <div class="p-6">
-                        <div class="mb-4">
-                            <mat-checkbox formControlName="semComorbidades">Não possuo comorbidades</mat-checkbox>
-                        </div>
-
-                        <div *ngIf="!profileForm.get('semComorbidades').value" class="mt-4">
-                            <div class="font-medium mb-2">Selecione suas comorbidades:</div>
-
-                            <!-- Exibir chips das comorbidades já selecionadas -->
-                            <div class="flex flex-wrap gap-2 mb-4" *ngIf="comorbidadesSelecionadas.length > 0">
-                                <mat-chip-set>
-                                    <mat-chip *ngFor="let comorbidade of comorbidadesSelecionadas"
-                                            [removable]="editMode"
-                                            (removed)="removerComorbidade(comorbidade)"
-                                            [matTooltip]="comorbidade.descricao">
-                                        {{comorbidade.nome}}
-                                        <mat-icon matChipRemove *ngIf="editMode">cancel</mat-icon>
-                                    </mat-chip>
-                                </mat-chip-set>
-                            </div>
-
-                            <!-- Lista de comorbidades disponíveis (visível apenas em modo de edição) -->
-                            <div *ngIf="editMode" class="grid grid-cols-1 lg:grid-cols-2 gap-2 mt-4">
-                                <div *ngFor="let comorbidade of comorbidades">
-                                    <mat-checkbox
-                                        [checked]="isComorbidadeSelected(comorbidade)"
-                                        (change)="toggleComorbidade(comorbidade, $event)"
-                                        [disabled]="profileForm.get('semComorbidades').value"
-                                        [matTooltip]="comorbidade.descricao">
-                                        {{comorbidade.nome}}
-                                    </mat-checkbox>
-                                </div>
-                            </div>
-
-                            <div *ngIf="!editMode && comorbidadesSelecionadas.length === 0" class="text-secondary italic">
-                                Nenhuma comorbidade selecionada.
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </form>
-        </div>
+<!-- Loading Overlay -->
+<div *ngIf="isLoading" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 flex items-center">
+        <mat-icon class="animate-spin mr-3 text-indigo-500">refresh</mat-icon>
+        <span class="text-gray-700">Carregando...</span>
     </div>
 </div>
