@@ -1,24 +1,28 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, ViewEncapsulation, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewEncapsulation } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatChipsModule } from '@angular/material/chips';
 import { MatDialog } from '@angular/material/dialog';
-import { ModalMetaComponent, ModalMetaData } from './modal-meta/modal-meta.component';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTabsModule } from '@angular/material/tabs';
-import { Subject, takeUntil } from 'rxjs';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MetasService } from 'app/modules/metas/metas.service';
+import { Subject, takeUntil } from 'rxjs';
+import {
+    ModalMetaComponent,
+    ModalMetaData,
+} from './modal-meta/modal-meta.component';
 
 export interface Meta {
     id?: number;
     tipoMeta: 'PESO' | 'AGUA' | 'CALORIAS';
     valorAtual: number;
     valorMeta: number;
+    valorInicial: number;
     completa: boolean;
 }
 
@@ -56,7 +60,7 @@ export class MetasComponent implements OnInit, OnDestroy {
         totalMetas: 0,
         metasCompletas: 0,
         metasEmAndamento: 0,
-        ultimaAtualizacao: ''
+        ultimaAtualizacao: '',
     };
 
     isLoading = false;
@@ -79,7 +83,8 @@ export class MetasComponent implements OnInit, OnDestroy {
     private carregarDados(): void {
         this.isLoading = true;
 
-        this._metasService.listarMetas()
+        this._metasService
+            .listarMetas()
             .pipe(takeUntil(this._unsubscribeAll))
             .subscribe({
                 next: (metas) => {
@@ -90,56 +95,80 @@ export class MetasComponent implements OnInit, OnDestroy {
                 error: (error) => {
                     console.error('Erro ao carregar metas:', error);
                     this.isLoading = false;
-                }
+                },
             });
     }
 
     private calcularResumo(): void {
         this.resumo.totalMetas = this.metas.length;
-        this.resumo.metasCompletas = this.metas.filter(m => m.completa).length;
-        this.resumo.metasEmAndamento = this.metas.filter(m => !m.completa).length;
+        this.resumo.metasCompletas = this.metas.filter(
+            (m) => m.completa
+        ).length;
+        this.resumo.metasEmAndamento = this.metas.filter(
+            (m) => !m.completa
+        ).length;
         this.resumo.ultimaAtualizacao = new Date().toLocaleString();
     }
 
     obterIconePorTipo(tipo: string): string {
         const icones = {
-            'PESO': 'scale',
-            'AGUA': 'water_drop',
-            'CALORIAS': 'local_fire_department'
+            PESO: 'scale',
+            AGUA: 'water_drop',
+            CALORIAS: 'local_fire_department',
         };
         return icones[tipo] || 'flag';
     }
 
     obterCorPorTipo(tipo: string): string {
         const cores = {
-            'PESO': 'text-blue-500',
-            'AGUA': 'text-cyan-500',
-            'CALORIAS': 'text-orange-500'
+            PESO: 'text-blue-500',
+            AGUA: 'text-cyan-500',
+            CALORIAS: 'text-orange-500',
         };
         return cores[tipo] || 'text-gray-500';
     }
 
     obterLabelPorTipo(tipo: string): string {
         const labels = {
-            'PESO': 'Peso',
-            'AGUA': 'Hidratação',
-            'CALORIAS': 'Calorias'
+            PESO: 'Peso',
+            AGUA: 'Hidratação',
+            CALORIAS: 'Calorias',
         };
         return labels[tipo] || tipo;
     }
 
     obterUnidadePorTipo(tipo: string): string {
         const unidades = {
-            'PESO': 'kg',
-            'AGUA': 'ml',
-            'CALORIAS': 'kcal'
+            PESO: 'kg',
+            AGUA: 'ml',
+            CALORIAS: 'kcal',
         };
         return unidades[tipo] || '';
     }
 
     calcularProgresso(meta: Meta): number {
-        if (!meta.valorMeta || meta.valorMeta === 0) return 0;
-        return Math.min(100, (meta.valorAtual / meta.valorMeta) * 100);
+        if (
+            meta.valorMeta === meta.valorInicial ||
+            meta.valorMeta === null ||
+            meta.valorInicial === null ||
+            meta.valorAtual === null
+        )
+            return 0;
+
+        const diferencaTotal = meta.valorMeta - meta.valorInicial;
+        const diferencaAtual = meta.valorAtual - meta.valorInicial;
+
+        let progresso = (diferencaAtual / diferencaTotal) * 100;
+
+        // Corrige progresso inverso se for meta de diminuir
+        if (meta.valorMeta < meta.valorInicial) {
+            progresso =
+                ((meta.valorInicial - meta.valorAtual) /
+                    (meta.valorInicial - meta.valorMeta)) *
+                100;
+        }
+
+        return Math.max(0, Math.min(progresso, 100)); // Limita entre 0% e 100%
     }
 
     obterStatusMeta(meta: Meta): string {
@@ -160,23 +189,25 @@ export class MetasComponent implements OnInit, OnDestroy {
 
     editarMeta(meta: Meta): void {
         if (meta.completa) {
-            alert('Esta meta já foi concluída e não pode ser editada. Crie uma nova meta se desejar.');
+            alert(
+                'Esta meta já foi concluída e não pode ser editada. Crie uma nova meta se desejar.'
+            );
             return;
         }
 
         const dialogData: ModalMetaData = {
             meta: meta,
-            modo: 'editar'
+            modo: 'editar',
         };
 
         const dialogRef = this.dialog.open(ModalMetaComponent, {
             width: '600px',
             maxWidth: '95vw',
             data: dialogData,
-            disableClose: true
+            disableClose: true,
         });
 
-        dialogRef.afterClosed().subscribe(result => {
+        dialogRef.afterClosed().subscribe((result) => {
             if (result?.success) {
                 this.carregarDados();
             }
@@ -185,7 +216,8 @@ export class MetasComponent implements OnInit, OnDestroy {
 
     excluirMeta(meta: Meta): void {
         if (confirm('Tem certeza que deseja excluir esta meta?')) {
-            this._metasService.excluirMeta(meta.id!)
+            this._metasService
+                .excluirMeta(meta.id!)
                 .pipe(takeUntil(this._unsubscribeAll))
                 .subscribe({
                     next: () => {
@@ -193,20 +225,22 @@ export class MetasComponent implements OnInit, OnDestroy {
                     },
                     error: (error) => {
                         console.error('Erro ao excluir meta:', error);
-                    }
+                    },
                 });
         }
     }
 
     atualizarProgresso(meta: Meta): void {
         if (meta.completa) {
-            alert('Esta meta já foi concluída e não pode ter seu progresso atualizado.');
+            alert(
+                'Esta meta já foi concluída e não pode ter seu progresso atualizado.'
+            );
             return;
         }
 
         const dialogData: ModalMetaData = {
             meta: meta,
-            modo: 'progresso'
+            modo: 'progresso',
         };
 
         const dialogRef = this.dialog.open(ModalMetaComponent, {
@@ -214,10 +248,10 @@ export class MetasComponent implements OnInit, OnDestroy {
             maxWidth: '90vw',
             maxHeight: '80vh',
             data: dialogData,
-            disableClose: true
+            disableClose: true,
         });
 
-        dialogRef.afterClosed().subscribe(result => {
+        dialogRef.afterClosed().subscribe((result) => {
             if (result?.success) {
                 this.carregarDados();
             }
@@ -226,17 +260,17 @@ export class MetasComponent implements OnInit, OnDestroy {
 
     adicionarNovaMeta(): void {
         const dialogData: ModalMetaData = {
-            modo: 'criar'
+            modo: 'criar',
         };
 
         const dialogRef = this.dialog.open(ModalMetaComponent, {
             width: '600px',
             maxWidth: '95vw',
             data: dialogData,
-            disableClose: true
+            disableClose: true,
         });
 
-        dialogRef.afterClosed().subscribe(result => {
+        dialogRef.afterClosed().subscribe((result) => {
             if (result?.success) {
                 this.carregarDados();
             }
@@ -246,17 +280,17 @@ export class MetasComponent implements OnInit, OnDestroy {
     criarNovaMeta(tipoMeta?: string): void {
         const dialogData: ModalMetaData = {
             modo: 'criar',
-            meta: tipoMeta ? { tipoMeta } as Meta : undefined
+            meta: tipoMeta ? ({ tipoMeta } as Meta) : undefined,
         };
 
         const dialogRef = this.dialog.open(ModalMetaComponent, {
             width: '600px',
             maxWidth: '95vw',
             data: dialogData,
-            disableClose: true
+            disableClose: true,
         });
 
-        dialogRef.afterClosed().subscribe(result => {
+        dialogRef.afterClosed().subscribe((result) => {
             if (result?.success) {
                 this.carregarDados();
             }
@@ -264,15 +298,15 @@ export class MetasComponent implements OnInit, OnDestroy {
     }
 
     obterMetasPorTipo(tipo: string): Meta[] {
-        return this.metas.filter(m => m.tipoMeta === tipo);
+        return this.metas.filter((m) => m.tipoMeta === tipo);
     }
 
     obterMetasCompletas(): Meta[] {
-        return this.metas.filter(m => m.completa);
+        return this.metas.filter((m) => m.completa);
     }
 
     obterMetasEmAndamento(): Meta[] {
-        return this.metas.filter(m => !m.completa);
+        return this.metas.filter((m) => !m.completa);
     }
 
     trackByMeta(index: number, meta: Meta): number {

@@ -1,24 +1,28 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, ViewEncapsulation, OnDestroy } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Component, OnDestroy, OnInit, ViewEncapsulation } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatChipsModule } from '@angular/material/chips';
 import { MatDialog } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatChipsModule } from '@angular/material/chips';
 import { Router } from '@angular/router';
+import { ApiService } from 'app/core/services/api.service';
 import { UserService } from 'app/core/user/user.service';
 import { User } from 'app/core/user/user.types';
-import { Subject, takeUntil, combineLatest, forkJoin } from 'rxjs';
-import { HttpClient } from '@angular/common/http';
-import { ApiService } from 'app/core/services/api.service';
-import { HomeDashboardService, ConsumoCaloricoResponse, EstatisticasSemanais } from './home-dashboard.service';
-import { MetasService } from '../metas/metas.service';
+import { Subject, combineLatest, takeUntil } from 'rxjs';
 import { Meta } from '../metas/metas.component';
+import { MetasService } from '../metas/metas.service';
 import { RefeicoesService } from '../refeicoes/refeicoes.service';
 import { HistoricoInsightsModalComponent } from './historico-insights-modal.component';
+import {
+    ConsumoCaloricoResponse,
+    EstatisticasSemanais,
+    HomeDashboardService,
+} from './home-dashboard.service';
 
 interface MetricasSaude {
     imc: number;
@@ -74,7 +78,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     metasResumo = {
         total: 0,
         completas: 0,
-        emAndamento: 0
+        emAndamento: 0,
     };
     planejamentoSemanal: any;
     insightsPlanejamento: any[] = [];
@@ -107,7 +111,8 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
 
     private carregarDadosUsuario(): void {
-        this._userService.getProfile()
+        this._userService
+            .getProfile()
             .pipe(takeUntil(this._unsubscribeAll))
             .subscribe({
                 next: (user) => {
@@ -120,13 +125,22 @@ export class HomeComponent implements OnInit, OnDestroy {
                 },
                 error: (error) => {
                     console.error('Erro ao carregar dados do usuário:', error);
-                }
+                },
             });
     }
 
     private avaliarStatusPerfil(): void {
-        const camposObrigatorios = ['altura', 'peso', 'idade', 'sexo', 'nivelAtividade', 'objetivoDieta'];
-        const camposFaltantes = camposObrigatorios.filter(campo => !this.user[campo]);
+        const camposObrigatorios = [
+            'altura',
+            'peso',
+            'idade',
+            'sexo',
+            'nivelAtividade',
+            'objetivoDieta',
+        ];
+        const camposFaltantes = camposObrigatorios.filter(
+            (campo) => !this.user[campo]
+        );
 
         this.perfilCompleto = camposFaltantes.length === 0;
 
@@ -137,12 +151,12 @@ export class HomeComponent implements OnInit, OnDestroy {
 
     private obterProximaEtapa(camposFaltantes: string[]): string {
         const etapas = {
-            'altura': 'Complete suas medidas corporais',
-            'peso': 'Registre seu peso atual',
-            'idade': 'Informe sua idade',
-            'sexo': 'Defina seu perfil biológico',
-            'nivelAtividade': 'Escolha seu nível de atividade',
-            'objetivoDieta': 'Defina seu objetivo nutricional'
+            altura: 'Complete suas medidas corporais',
+            peso: 'Registre seu peso atual',
+            idade: 'Informe sua idade',
+            sexo: 'Defina seu perfil biológico',
+            nivelAtividade: 'Escolha seu nível de atividade',
+            objetivoDieta: 'Defina seu objetivo nutricional',
         };
 
         return etapas[camposFaltantes[0]] || 'Complete seu perfil';
@@ -160,7 +174,7 @@ export class HomeComponent implements OnInit, OnDestroy {
             imc: Math.round(imc * 10) / 10,
             classificacaoImc: this.classificarIMC(imc),
             gastoCaloricoBasal: this.calcularGastoBasal(),
-            gastoCaloricoTotal: this.calcularGastoTotal()
+            gastoCaloricoTotal: this.calcularGastoTotal(),
         };
     }
 
@@ -172,25 +186,40 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
 
     private calcularGastoBasal(): number {
-        if (!this.user.peso || !this.user.altura || !this.user.idade || !this.user.sexo) {
+        if (
+            !this.user.peso ||
+            !this.user.altura ||
+            !this.user.idade ||
+            !this.user.sexo
+        ) {
             return 0;
         }
 
         if (this.user.sexo === 'MASCULINO') {
-            return Math.round(88.362 + (13.397 * this.user.peso) + (4.799 * this.user.altura) - (5.677 * this.user.idade));
+            return Math.round(
+                88.362 +
+                    13.397 * this.user.peso +
+                    4.799 * this.user.altura -
+                    5.677 * this.user.idade
+            );
         } else {
-            return Math.round(447.593 + (9.247 * this.user.peso) + (3.098 * this.user.altura) - (4.330 * this.user.idade));
+            return Math.round(
+                447.593 +
+                    9.247 * this.user.peso +
+                    3.098 * this.user.altura -
+                    4.33 * this.user.idade
+            );
         }
     }
 
     private calcularGastoTotal(): number {
         const gastoBasal = this.calcularGastoBasal();
         const fatores = {
-            'SEDENTARIO': 1.2,
-            'LEVE': 1.375,
-            'MODERADO': 1.55,
-            'INTENSO': 1.725,
-            'ATLETA': 1.9
+            SEDENTARIO: 1.2,
+            LEVE: 1.375,
+            MODERADO: 1.55,
+            INTENSO: 1.725,
+            ATLETA: 1.9,
         };
 
         const fator = fatores[this.user.nivelAtividade] || 1.2;
@@ -204,7 +233,7 @@ export class HomeComponent implements OnInit, OnDestroy {
             porcentagemCalorias: 0,
             aguaConsumida: 0,
             aguaMeta: Math.round((this.user?.peso || 70) * 35),
-            porcentagemAgua: 0
+            porcentagemAgua: 0,
         };
     }
 
@@ -213,19 +242,23 @@ export class HomeComponent implements OnInit, OnDestroy {
             this._dashboardService.carregarConsumoDiario(),
             this._dashboardService.carregarEstatisticasSemanaisComDados(),
             this._metasService.listarMetas(),
-            this._dashboardService.obterPlanejamentoSemanal()
-        ]).pipe(takeUntil(this._unsubscribeAll))
-        .subscribe({
-            next: ([consumo, estatisticas, metas, planejamento]) => {
-                this.atualizarDashboard(consumo);
-                this.estatisticas = estatisticas;
-                this.metas = metas;
-                this.planejamentoSemanal = planejamento;
-                this.atualizarResumoMetas();
-                this.gerarRecomendacoesPersonalizadas(consumo);
-                this.insightsPlanejamento = this._dashboardService.gerarInsightsPlanejamento(planejamento);
-            }
-        });
+            this._dashboardService.obterPlanejamentoSemanal(),
+        ])
+            .pipe(takeUntil(this._unsubscribeAll))
+            .subscribe({
+                next: ([consumo, estatisticas, metas, planejamento]) => {
+                    this.atualizarDashboard(consumo);
+                    this.estatisticas = estatisticas;
+                    this.metas = metas;
+                    this.planejamentoSemanal = planejamento;
+                    this.atualizarResumoMetas();
+                    this.gerarRecomendacoesPersonalizadas(consumo);
+                    this.insightsPlanejamento =
+                        this._dashboardService.gerarInsightsPlanejamento(
+                            planejamento
+                        );
+                },
+            });
     }
 
     private atualizarDashboard(consumo: ConsumoCaloricoResponse): void {
@@ -235,23 +268,33 @@ export class HomeComponent implements OnInit, OnDestroy {
         this.dashboard = {
             caloriasConsumidas: consumo.caloriasConsumidas,
             caloriasMeta: caloriasMeta,
-            porcentagemCalorias: (consumo.caloriasConsumidas / caloriasMeta) * 100,
+            porcentagemCalorias:
+                (consumo.caloriasConsumidas / caloriasMeta) * 100,
             aguaConsumida: consumo.agua,
             aguaMeta: aguaMeta,
-            porcentagemAgua: (consumo.agua / aguaMeta) * 100
+            porcentagemAgua: (consumo.agua / aguaMeta) * 100,
         };
     }
 
-    private gerarRecomendacoesPersonalizadas(consumo?: ConsumoCaloricoResponse): void {
+    private gerarRecomendacoesPersonalizadas(
+        consumo?: ConsumoCaloricoResponse
+    ): void {
         if (!this.user || !consumo) {
             this.recomendacoes = this.obterRecomendacoesBasicas();
             return;
         }
 
-        const recomendacoesIA = this._dashboardService.gerarRecomendacoesInteligentes(this.user, consumo);
+        const recomendacoesIA =
+            this._dashboardService.gerarRecomendacoesInteligentes(
+                this.user,
+                consumo
+            );
         const recomendacoesBasicas = this.obterRecomendacoesBasicas();
 
-        this.recomendacoes = [...recomendacoesIA, ...recomendacoesBasicas].slice(0, 6);
+        this.recomendacoes = [
+            ...recomendacoesIA,
+            ...recomendacoesBasicas,
+        ].slice(0, 6);
     }
 
     private obterRecomendacoesBasicas(): RecomendacaoPersonalizada[] {
@@ -263,18 +306,20 @@ export class HomeComponent implements OnInit, OnDestroy {
                     tipo: 'nutricional',
                     prioridade: 'alta',
                     titulo: 'Foque no ganho de peso saudável',
-                    descricao: 'Seu IMC indica que você está abaixo do peso. Considere aumentar a ingestão calórica.',
+                    descricao:
+                        'Seu IMC indica que você está abaixo do peso. Considere aumentar a ingestão calórica.',
                     icone: 'trending_up',
-                    corIcone: 'text-blue-500'
+                    corIcone: 'text-blue-500',
                 });
             } else if (this.metricas.imc > 25) {
                 recomendacoes.push({
                     tipo: 'nutricional',
                     prioridade: 'alta',
                     titulo: 'Controle seu consumo calórico',
-                    descricao: 'Seu IMC indica sobrepeso. Um déficit calórico pode ajudar.',
+                    descricao:
+                        'Seu IMC indica sobrepeso. Um déficit calórico pode ajudar.',
                     icone: 'trending_down',
-                    corIcone: 'text-orange-500'
+                    corIcone: 'text-orange-500',
                 });
             }
         }
@@ -285,7 +330,7 @@ export class HomeComponent implements OnInit, OnDestroy {
             titulo: 'Mantenha-se hidratado',
             descricao: `Para seu peso, recomendamos ${Math.round((this.user?.peso || 70) * 35)} ml de água por dia.`,
             icone: 'water_drop',
-            corIcone: 'text-blue-400'
+            corIcone: 'text-blue-400',
         });
 
         return recomendacoes;
@@ -317,7 +362,7 @@ export class HomeComponent implements OnInit, OnDestroy {
             this.dialog.open(HistoricoInsightsModalComponent, {
                 width: '800px',
                 maxWidth: '90vw',
-                data: this.dadosInsights
+                data: this.dadosInsights,
             });
         } else {
             this.dialog.open(HistoricoInsightsModalComponent, {
@@ -327,18 +372,19 @@ export class HomeComponent implements OnInit, OnDestroy {
                     resumoSemanal: {
                         sequenciaAtual: this.estatisticas?.sequenciaAtual || 0,
                         totalRefeicoes: this.estatisticas?.totalRefeicoes || 0,
-                        mediaCaloriasDiarias: this.estatisticas?.mediaCaloriasDiarias || 0,
-                        progressoMeta: 0
+                        mediaCaloriasDiarias:
+                            this.estatisticas?.mediaCaloriasDiarias || 0,
+                        progressoMeta: 0,
                     },
                     historicoDiario: [],
                     insightsSemana: [],
                     tendencias: {
                         consistenciaRefeicoes: 0,
                         metaHidratacao: 0,
-                        equilibrioCalorico: 0
+                        equilibrioCalorico: 0,
                     },
-                    recomendacoes: []
-                }
+                    recomendacoes: [],
+                },
             });
         }
     }
@@ -368,40 +414,43 @@ export class HomeComponent implements OnInit, OnDestroy {
 
     obterLabelNivelAtividade(): string {
         const labels = {
-            'SEDENTARIO': 'Sedentário',
-            'LEVE': 'Leve',
-            'MODERADO': 'Moderado',
-            'INTENSO': 'Intenso',
-            'ATLETA': 'Atleta'
+            SEDENTARIO: 'Sedentário',
+            LEVE: 'Leve',
+            MODERADO: 'Moderado',
+            INTENSO: 'Intenso',
+            ATLETA: 'Atleta',
         };
         return labels[this.user?.nivelAtividade] || 'Não informado';
     }
 
     obterIconeObjetivo(): string {
         const icones = {
-            'PERDER_PESO': 'trending_down',
-            'GANHAR_MASSA': 'trending_up',
-            'MANTER_PESO': 'balance'
+            PERDER_PESO: 'trending_down',
+            GANHAR_MASSA: 'trending_up',
+            MANTER_PESO: 'balance',
         };
         return icones[this.user?.objetivoDieta] || 'flag';
     }
 
     obterLabelObjetivo(): string {
         const labels = {
-            'PERDER_PESO': 'Perder Peso',
-            'GANHAR_MASSA': 'Ganhar Massa Muscular',
-            'MANTER_PESO': 'Manter Peso Atual'
+            PERDER_PESO: 'Perder Peso',
+            GANHAR_MASSA: 'Ganhar Massa Muscular',
+            MANTER_PESO: 'Manter Peso Atual',
         };
         return labels[this.user?.objetivoDieta] || 'Definir Objetivo';
     }
 
     obterDescricaoObjetivo(): string {
         const descricoes = {
-            'PERDER_PESO': 'Reduzindo calorias e aumentando atividade física',
-            'GANHAR_MASSA': 'Focando em proteínas e treino de força',
-            'MANTER_PESO': 'Mantendo equilíbrio calórico e hábitos saudáveis'
+            PERDER_PESO: 'Reduzindo calorias e aumentando atividade física',
+            GANHAR_MASSA: 'Focando em proteínas e treino de força',
+            MANTER_PESO: 'Mantendo equilíbrio calórico e hábitos saudáveis',
         };
-        return descricoes[this.user?.objetivoDieta] || 'Configure seu perfil para personalizar sua experiência';
+        return (
+            descricoes[this.user?.objetivoDieta] ||
+            'Configure seu perfil para personalizar sua experiência'
+        );
     }
 
     obterDiasComPlanejamento(): number {
@@ -416,97 +465,138 @@ export class HomeComponent implements OnInit, OnDestroy {
         return this.planejamentoSemanal?.porcentagemPlanejamento || 0;
     }
 
-    trackByRecomendacao(index: number, item: RecomendacaoPersonalizada): string {
+    trackByRecomendacao(
+        index: number,
+        item: RecomendacaoPersonalizada
+    ): string {
         return item.titulo + item.tipo;
     }
 
     obterClassePrioridade(prioridade: string): string {
         const classes = {
-            'alta': 'border-red-200 bg-red-50',
-            'media': 'border-yellow-200 bg-yellow-50',
-            'baixa': 'border-green-200 bg-green-50'
+            alta: 'border-red-200 bg-red-50',
+            media: 'border-yellow-200 bg-yellow-50',
+            baixa: 'border-green-200 bg-green-50',
         };
         return classes[prioridade] || 'border-gray-200 bg-gray-50';
     }
 
     private atualizarResumoMetas(): void {
         this.metasResumo.total = this.metas.length;
-        this.metasResumo.completas = this.metas.filter(m => m.completa).length;
-        this.metasResumo.emAndamento = this.metas.filter(m => !m.completa).length;
+        this.metasResumo.completas = this.metas.filter(
+            (m) => m.completa
+        ).length;
+        this.metasResumo.emAndamento = this.metas.filter(
+            (m) => !m.completa
+        ).length;
     }
 
     obterMetaPorTipo(tipo: string): Meta | null {
-        return this.metas.find(m => m.tipoMeta === tipo) || null;
+        return this.metas.find((m) => m.tipoMeta === tipo) || null;
     }
 
     calcularProgressoMeta(meta: Meta): number {
-        if (!meta || !meta.valorMeta || meta.valorMeta === 0) return 0;
-        return Math.min(100, (meta.valorAtual / meta.valorMeta) * 100);
+        if (
+            meta.valorMeta === meta.valorInicial ||
+            meta.valorMeta === null ||
+            meta.valorInicial === null ||
+            meta.valorAtual === null
+        )
+            return 0;
+
+        const diferencaTotal = meta.valorMeta - meta.valorInicial;
+        const diferencaAtual = meta.valorAtual - meta.valorInicial;
+
+        let progresso = (diferencaAtual / diferencaTotal) * 100;
+
+        // Corrige progresso inverso se for meta de diminuir
+        if (meta.valorMeta < meta.valorInicial) {
+            progresso =
+                ((meta.valorInicial - meta.valorAtual) /
+                    (meta.valorInicial - meta.valorMeta)) *
+                100;
+        }
+
+        return Math.max(0, Math.min(progresso, 100)); // Limita entre 0% e 100%
     }
 
     obterIconeMetaPorTipo(tipo: string): string {
         const icones = {
-            'PESO': 'scale',
-            'AGUA': 'water_drop',
-            'CALORIAS': 'local_fire_department'
+            PESO: 'scale',
+            AGUA: 'water_drop',
+            CALORIAS: 'local_fire_department',
         };
         return icones[tipo] || 'flag';
     }
 
     obterCorMetaPorTipo(tipo: string): string {
         const cores = {
-            'PESO': 'text-blue-500',
-            'AGUA': 'text-cyan-500',
-            'CALORIAS': 'text-orange-500'
+            PESO: 'text-blue-500',
+            AGUA: 'text-cyan-500',
+            CALORIAS: 'text-orange-500',
         };
         return cores[tipo] || 'text-gray-500';
     }
 
     obterUnidadeMetaPorTipo(tipo: string): string {
         const unidades = {
-            'PESO': 'kg',
-            'AGUA': 'ml',
-            'CALORIAS': 'kcal'
+            PESO: 'kg',
+            AGUA: 'ml',
+            CALORIAS: 'kcal',
         };
         return unidades[tipo] || '';
     }
 
     private carregarPlanejamentoSemanal(): void {
-        this._dashboardService.buscarRefeicoesSemanaAtual()
+        this._dashboardService
+            .buscarRefeicoesSemanaAtual()
             .pipe(takeUntil(this._unsubscribeAll))
             .subscribe({
                 next: (refeicoes) => {
-                    this.planejamentoSemanal = this._dashboardService.processarPlanejamentoSemanal(refeicoes);
-                    this.insightsPlanejamento = this.planejamentoSemanal.insights || [];
+                    this.planejamentoSemanal =
+                        this._dashboardService.processarPlanejamentoSemanal(
+                            refeicoes
+                        );
+                    this.insightsPlanejamento =
+                        this.planejamentoSemanal.insights || [];
                 },
                 error: (error) => {
-                    console.error('Erro ao carregar planejamento semanal:', error);
+                    console.error(
+                        'Erro ao carregar planejamento semanal:',
+                        error
+                    );
                     this.planejamentoSemanal = this.gerarPlanejamentoExemplo();
-                }
+                },
             });
     }
 
     private carregarInsightsReais(): void {
         if (!this.user) return;
 
-        this._dashboardService.buscarRefeicoesSemanaAtual()
+        this._dashboardService
+            .buscarRefeicoesSemanaAtual()
             .pipe(takeUntil(this._unsubscribeAll))
             .subscribe({
                 next: (refeicoes) => {
-                    this._dashboardService.calcularInsightsReais(refeicoes, this.user)
-                        .subscribe(insights => {
+                    this._dashboardService
+                        .calcularInsightsReais(refeicoes, this.user)
+                        .subscribe((insights) => {
                             this.dadosInsights = insights;
                             this.estatisticas = {
-                                diasComRegistro: insights.resumoSemanal.sequenciaAtual,
-                                totalRefeicoes: insights.resumoSemanal.totalRefeicoes,
-                                mediaCaloriasDiarias: insights.resumoSemanal.mediaCaloriasDiarias,
-                                sequenciaAtual: insights.resumoSemanal.sequenciaAtual
+                                diasComRegistro:
+                                    insights.resumoSemanal.sequenciaAtual,
+                                totalRefeicoes:
+                                    insights.resumoSemanal.totalRefeicoes,
+                                mediaCaloriasDiarias:
+                                    insights.resumoSemanal.mediaCaloriasDiarias,
+                                sequenciaAtual:
+                                    insights.resumoSemanal.sequenciaAtual,
                             };
                         });
                 },
                 error: (error) => {
                     console.error('Erro ao carregar insights:', error);
-                }
+                },
             });
     }
 
@@ -526,23 +616,30 @@ export class HomeComponent implements OnInit, OnDestroy {
                 isPast: false,
                 temPlano: Math.random() > 0.4,
                 quantidadeRefeicoes: Math.floor(Math.random() * 4) + 1,
-                totalCalorias: Math.floor(Math.random() * 1000) + 1500
+                totalCalorias: Math.floor(Math.random() * 1000) + 1500,
             });
         }
 
-        const totalDiasComPlano = semana.filter(d => d.temPlano).length;
-        const totalRefeicoes = semana.reduce((total, d) => total + d.quantidadeRefeicoes, 0);
+        const totalDiasComPlano = semana.filter((d) => d.temPlano).length;
+        const totalRefeicoes = semana.reduce(
+            (total, d) => total + d.quantidadeRefeicoes,
+            0
+        );
 
         return {
             semana,
             totalDiasComPlano,
             totalRefeicoes,
             porcentagemPlanejamento: (totalDiasComPlano / 7) * 100,
-            insights: []
+            insights: [],
         };
     }
 
-    formatarDiaComData(data: string, diaSemana: string, diaNumero: number): string {
+    formatarDiaComData(
+        data: string,
+        diaSemana: string,
+        diaNumero: number
+    ): string {
         return `${diaSemana} - ${diaNumero}`;
     }
 }

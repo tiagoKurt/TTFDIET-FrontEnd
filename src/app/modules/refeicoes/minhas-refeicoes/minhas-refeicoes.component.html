@@ -51,6 +51,16 @@
                             <span class="text-green-600">{{ getTotalCarboidratos(refeicao).toFixed(1) }}g carb</span>
                             <span class="text-yellow-600">{{ getTotalGorduras(refeicao).toFixed(1) }}g gord</span>
                         </div>
+                        <div class="flex gap-4 text-sm">
+                            <button mat-icon-button
+                                color="warn"
+                                (click)="excluirRefeicao(refeicao.id)"
+                                [disabled]="loading"
+                                class="hover:scale-110 transition-transform duration-200 ml-80">
+                            <mat-spinner *ngIf="loading" diameter="16" class="mr-2"></mat-spinner>
+                            <mat-icon *ngIf="!loading">delete</mat-icon>
+                            </button>
+                        </div>
                     </mat-panel-description>
                 </mat-expansion-panel-header>
 
