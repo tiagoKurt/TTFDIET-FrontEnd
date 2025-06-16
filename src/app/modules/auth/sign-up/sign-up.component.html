@@ -1,205 +1,322 @@
-<div
-    class="flex min-w-0 flex-auto flex-col items-center sm:flex-row sm:justify-center md:items-start md:justify-start"
->
-    <div
-        class="w-full px-4 py-8 sm:bg-card sm:w-auto sm:rounded-2xl sm:p-12 sm:shadow md:flex md:h-full md:w-1/2 md:items-center md:justify-end md:rounded-none md:p-16 md:shadow-none"
-    >
-        <div class="mx-auto w-full max-w-80 sm:mx-0 sm:w-80">
-            <!-- Logo -->
-            <div class="w-24">
-                <img src="images/logo/TTF-DIET_ICON-removebg-preview.png" />
-            </div>
-
-            <!-- Title -->
-            <div
-                class="mt-2 text-4xl font-extrabold leading-tight tracking-tight"
-            >
-                Cadastre-se
-            </div>
-            <div class="mt-0.5 flex items-baseline font-medium">
-                <div>Já possui uma conta?</div>
-                <a
-                    class="ml-1 text-primary-500 hover:underline"
-                    [routerLink]="['/sign-in']"
-                    >Entrar
-                </a>
+<div class="w-full h-screen overflow-hidden flex flex-col lg:flex-row">
+    <!-- Left Side - Form Section -->
+    <div class="flex-1 flex items-center justify-center px-4 py-4 sm:px-8 lg:px-12 bg-gray-50 dark:bg-gray-900 min-h-screen lg:min-h-full overflow-y-auto">
+        <div class="w-full max-w-md space-y-6 py-4">
+            <!-- Logo Section -->
+            <div class="text-center">
+                <div class="mx-auto h-16 w-16 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 p-3 shadow-lg transform hover:scale-105 transition-transform duration-200">
+                    <img
+                        src="images/logo/TTF-DIET_ICON-removebg-preview.png"
+                        alt="TTF Diet Logo"
+                        class="h-full w-full object-contain filter brightness-0 invert"
+                    />
+                </div>
+                <h2 class="mt-6 text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
+                    Crie sua conta gratuita
+                </h2>
+                <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                    Comece sua jornada rumo a uma vida mais saudável
+                </p>
+                <div class="mt-4 flex items-center justify-center space-x-1">
+                    <span class="text-sm text-gray-600 dark:text-gray-400">Já possui uma conta?</span>
+                    <a
+                        [routerLink]="['/sign-in']"
+                        class="text-sm font-medium text-green-600 hover:text-green-500 dark:text-green-400 dark:hover:text-green-300 transition-colors duration-200"
+                    >
+                        Entrar
+                    </a>
+                </div>
             </div>
 
             <!-- Alert -->
             @if (showAlert) {
-                <fuse-alert
-                    class="mt-8"
-                    [appearance]="'outline'"
-                    [showIcon]="false"
-                    [type]="alert.type"
-                    [@shake]="alert.type === 'error'"
-                >
-                    {{ alert.message }}
-                </fuse-alert>
+                <div class="rounded-lg border-l-4 p-4 transition-all duration-300 ease-in-out"
+                     [ngClass]="{
+                         'bg-red-50 border-red-400 text-red-800 dark:bg-red-900/20 dark:border-red-500 dark:text-red-400': alert.type === 'error',
+                         'bg-green-50 border-green-400 text-green-800 dark:bg-green-900/20 dark:border-green-500 dark:text-green-400': alert.type === 'success'
+                     }">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            @if (alert.type === 'error') {
+                                <mat-icon class="h-5 w-5 text-red-400" [svgIcon]="'heroicons_solid:exclamation-triangle'"></mat-icon>
+                            }
+                            @if (alert.type === 'success') {
+                                <mat-icon class="h-5 w-5 text-green-400" [svgIcon]="'heroicons_solid:check-circle'"></mat-icon>
+                            }
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm font-medium">{{ alert.message }}</p>
+                        </div>
+                    </div>
+                </div>
             }
 
-            <!-- Sign Up form -->
-            <form class="mt-8" [formGroup]="signUpForm" #signUpNgForm="ngForm">
+            <!-- Sign up form -->
+            <form class="space-y-4" [formGroup]="signUpForm" #signUpNgForm="ngForm">
                 <!-- Name field -->
-                <mat-form-field class="w-full">
-                    <mat-label>Nome Completo</mat-label>
-                    <input id="nome" matInput [formControlName]="'nome'" />
-                    @if (signUpForm.get('nome').hasError('required')) {
-                        <mat-error> Nome completo é obrigatório </mat-error>
+                <div class="space-y-1">
+                    <label for="nome" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Nome completo
+                    </label>
+                    <div class="relative">
+                        <input
+                            id="nome"
+                            [formControlName]="'nome'"
+                            type="text"
+                            autocomplete="name"
+                            class="block w-full rounded-lg border-0 py-3 px-4 text-gray-900 dark:text-white ring-1 ring-inset ring-gray-300 dark:ring-gray-600 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-green-600 dark:focus:ring-green-500 sm:text-sm sm:leading-6 bg-white dark:bg-gray-800 transition-all duration-200"
+                            placeholder="Digite seu nome completo"
+                        />
+                        <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+                            <mat-icon
+                                class="h-5 w-5 text-gray-400"
+                                [svgIcon]="'heroicons_outline:user'"
+                            ></mat-icon>
+                        </div>
+                    </div>
+                    @if (signUpForm.get('nome').hasError('required') && signUpForm.get('nome').touched) {
+                        <p class="text-sm text-red-600 dark:text-red-400 mt-1">Nome completo é obrigatório</p>
                     }
-                </mat-form-field>
+                    @if (signUpForm.get('nome').hasError('minlength') && signUpForm.get('nome').touched) {
+                        <p class="text-sm text-red-600 dark:text-red-400 mt-1">Nome deve ter pelo menos 2 caracteres</p>
+                    }
+                </div>
 
                 <!-- Email field -->
-                <mat-form-field class="w-full">
-                    <mat-label>Endereço de e-mail</mat-label>
-                    <input id="email" matInput [formControlName]="'email'" />
-                    @if (signUpForm.get('email').hasError('required')) {
-                        <mat-error> Email é obrigatório </mat-error>
+                <div class="space-y-1">
+                    <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Endereço de e-mail
+                    </label>
+                    <div class="relative">
+                        <input
+                            id="email"
+                            [formControlName]="'email'"
+                            type="email"
+                            autocomplete="email"
+                            class="block w-full rounded-lg border-0 py-3 px-4 text-gray-900 dark:text-white ring-1 ring-inset ring-gray-300 dark:ring-gray-600 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-green-600 dark:focus:ring-green-500 sm:text-sm sm:leading-6 bg-white dark:bg-gray-800 transition-all duration-200"
+                            placeholder="Digite seu e-mail"
+                        />
+                        <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+                            <mat-icon
+                                class="h-5 w-5 text-gray-400"
+                                [svgIcon]="'heroicons_outline:envelope'"
+                            ></mat-icon>
+                        </div>
+                    </div>
+                    @if (signUpForm.get('email').hasError('required') && signUpForm.get('email').touched) {
+                        <p class="text-sm text-red-600 dark:text-red-400 mt-1">E-mail é obrigatório</p>
                     }
-                    @if (signUpForm.get('email').hasError('email')) {
-                        <mat-error>
-                            Por favor, insira um endereço de e-mail válido
-                        </mat-error>
+                    @if (signUpForm.get('email').hasError('email') && signUpForm.get('email').touched) {
+                        <p class="text-sm text-red-600 dark:text-red-400 mt-1">Por favor, insira um endereço de e-mail válido</p>
                     }
-                </mat-form-field>
+                </div>
 
                 <!-- Password field -->
-                <mat-form-field class="w-full">
-                    <mat-label>Senha</mat-label>
-                    <input
-                        id="senha"
-                        matInput
-                        type="password"
-                        [formControlName]="'senha'"
-                        #passwordField
-                    />
-                    <button
-                        mat-icon-button
-                        type="button"
-                        (click)="
-                            passwordField.type === 'password'
-                                ? (passwordField.type = 'text')
-                                : (passwordField.type = 'password')
-                        "
-                        matSuffix
-                    >
-                        @if (passwordField.type === 'password') {
-                            <mat-icon
-                                class="icon-size-5"
-                                [svgIcon]="'heroicons_solid:eye'"
-                            ></mat-icon>
-                        }
-                        @if (passwordField.type === 'text') {
-                            <mat-icon
-                                class="icon-size-5"
-                                [svgIcon]="'heroicons_solid:eye-slash'"
-                            ></mat-icon>
-                        }
-                    </button>
-                    <mat-error> Senha é obrigatória </mat-error>
-                </mat-form-field>
+                <div class="space-y-1">
+                    <label for="senha" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Senha
+                    </label>
+                    <div class="relative">
+                        <input
+                            id="senha"
+                            [formControlName]="'senha'"
+                            #passwordField
+                            type="password"
+                            autocomplete="new-password"
+                            class="block w-full rounded-lg border-0 py-3 px-4 pr-12 text-gray-900 dark:text-white ring-1 ring-inset ring-gray-300 dark:ring-gray-600 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-green-600 dark:focus:ring-green-500 sm:text-sm sm:leading-6 bg-white dark:bg-gray-800 transition-all duration-200"
+                            placeholder="Crie uma senha segura"
+                        />
+                        <button
+                            type="button"
+                            (click)="
+                                passwordField.type === 'password'
+                                    ? (passwordField.type = 'text')
+                                    : (passwordField.type = 'password')
+                            "
+                            class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-200"
+                        >
+                            @if (passwordField.type === 'password') {
+                                <mat-icon class="h-5 w-5" [svgIcon]="'heroicons_outline:eye'"></mat-icon>
+                            }
+                            @if (passwordField.type === 'text') {
+                                <mat-icon class="h-5 w-5" [svgIcon]="'heroicons_outline:eye-slash'"></mat-icon>
+                            }
+                        </button>
+                    </div>
+                    @if (signUpForm.get('senha').hasError('required') && signUpForm.get('senha').touched) {
+                        <p class="text-sm text-red-600 dark:text-red-400 mt-1">Senha é obrigatória</p>
+                    }
+                    @if (signUpForm.get('senha').hasError('minlength') && signUpForm.get('senha').touched) {
+                        <p class="text-sm text-red-600 dark:text-red-400 mt-1">Senha deve ter pelo menos 8 caracteres</p>
+                    }
+                    @if (signUpForm.get('senha').hasError('pattern') && signUpForm.get('senha').touched) {
+                        <p class="text-sm text-red-600 dark:text-red-400 mt-1">Senha deve conter ao menos uma letra maiúscula, minúscula e um número</p>
+                    }
+                </div>
 
-                <!-- ToS and PP -->
-                <div class="mt-1.5 inline-flex w-full items-end">
-                    <mat-checkbox
-                        class="-ml-2"
-                        [color]="'primary'"
-                        [formControlName]="'agreements'"
-                    >
-                        <span>Eu concordo com</span>
-                        <a
-                            class="ml-1 text-primary-500 hover:underline"
-                            [routerLink]="['./']"
-                            >Termos
-                        </a>
-                        <span>e</span>
-                        <a
-                            class="ml-1 text-primary-500 hover:underline"
-                            [routerLink]="['./']"
-                            >Política de Privacidade
-                        </a>
-                    </mat-checkbox>
+                <!-- Password strength indicator -->
+                @if (signUpForm.get('senha').value && signUpForm.get('senha').value.length > 0) {
+                    <div class="space-y-2">
+                        <div class="text-xs text-gray-600 dark:text-gray-400">Força da senha:</div>
+                        <div class="flex space-x-1">
+                            <div class="h-2 w-1/4 rounded-sm"
+                                 [ngClass]="getPasswordStrength() >= 1 ? 'bg-red-400' : 'bg-gray-200 dark:bg-gray-700'"></div>
+                            <div class="h-2 w-1/4 rounded-sm"
+                                 [ngClass]="getPasswordStrength() >= 2 ? 'bg-yellow-400' : 'bg-gray-200 dark:bg-gray-700'"></div>
+                            <div class="h-2 w-1/4 rounded-sm"
+                                 [ngClass]="getPasswordStrength() >= 3 ? 'bg-blue-400' : 'bg-gray-200 dark:bg-gray-700'"></div>
+                            <div class="h-2 w-1/4 rounded-sm"
+                                 [ngClass]="getPasswordStrength() >= 4 ? 'bg-green-400' : 'bg-gray-200 dark:bg-gray-700'"></div>
+                        </div>
+                        <div class="text-xs" [ngClass]="{
+                            'text-red-600 dark:text-red-400': getPasswordStrength() === 1,
+                            'text-yellow-600 dark:text-yellow-400': getPasswordStrength() === 2,
+                            'text-blue-600 dark:text-blue-400': getPasswordStrength() === 3,
+                            'text-green-600 dark:text-green-400': getPasswordStrength() === 4
+                        }">
+                            {{ getPasswordStrengthText() }}
+                        </div>
+                    </div>
+                }
+
+                <!-- Terms and conditions -->
+                <div class="space-y-3">
+                    <div class="flex items-start">
+                        <input
+                            id="agreements"
+                            [formControlName]="'agreements'"
+                            type="checkbox"
+                            class="mt-1 h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-600 dark:border-gray-600 dark:bg-gray-800"
+                        />
+                        <label for="agreements" class="ml-3 block text-sm text-gray-700 dark:text-gray-300 leading-5">
+                            Eu concordo com os
+                            <a href="#" class="font-medium text-green-600 hover:text-green-500 dark:text-green-400 dark:hover:text-green-300 transition-colors duration-200">
+                                Termos de Serviço
+                            </a>
+                            e a
+                            <a href="#" class="font-medium text-green-600 hover:text-green-500 dark:text-green-400 dark:hover:text-green-300 transition-colors duration-200">
+                                Política de Privacidade
+                            </a>
+                        </label>
+                    </div>
+                    @if (signUpForm.get('agreements').hasError('required') && signUpForm.get('agreements').touched) {
+                        <p class="text-sm text-red-600 dark:text-red-400 ml-7">Você deve aceitar os termos para continuar</p>
+                    }
                 </div>
 
                 <!-- Submit button -->
                 <button
-                    class="fuse-mat-button-large mt-6 w-full"
-                    mat-flat-button
-                    [color]="'primary'"
-                    [disabled]="signUpForm.disabled"
+                    type="submit"
                     (click)="signUp()"
+                    [disabled]="signUpForm.disabled"
+                    class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl"
                 >
                     @if (!signUpForm.disabled) {
-                        <span> Criar conta gratuita </span>
+                        <span class="flex items-center">
+                            <mat-icon class="h-5 w-5 mr-2" [svgIcon]="'heroicons_outline:user-plus'"></mat-icon>
+                            Criar conta gratuita
+                        </span>
                     }
                     @if (signUpForm.disabled) {
-                        <mat-progress-spinner
-                            [diameter]="24"
-                            [mode]="'indeterminate'"
-                        ></mat-progress-spinner>
+                        <div class="flex items-center">
+                            <mat-progress-spinner
+                                [diameter]="20"
+                                [mode]="'indeterminate'"
+                                color="accent"
+                                class="mr-3"
+                            ></mat-progress-spinner>
+                            <span>Criando conta...</span>
+                        </div>
                     }
                 </button>
             </form>
+
+            <!-- Additional info -->
+            <div class="text-center space-y-3">
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                    Sua privacidade está protegida. Não compartilhamos seus dados pessoais.
+                </p>
+
+                <!-- Benefits preview -->
+                <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 space-y-2">
+                    <p class="text-sm font-medium text-green-800 dark:text-green-200">🎉 Benefícios da conta gratuita:</p>
+                    <div class="text-xs text-green-700 dark:text-green-300 space-y-1">
+                        <div>✓ Acesso a receitas saudáveis</div>
+                        <div>✓ Calculadora de calorias</div>
+                        <div>✓ Plano alimentar básico</div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-    <div
-        class="relative hidden h-full w-1/2 flex-auto items-center justify-center overflow-hidden bg-gray-800 p-16 dark:border-l md:flex lg:px-28"
-    >
-        <!-- Background -->
-        <!-- Rings -->
-        <!-- prettier-ignore -->
-        <svg class="absolute inset-0 pointer-events-none"
-             viewBox="0 0 960 540" width="100%" height="100%" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">
-            <g class="text-gray-700 opacity-25" fill="none" stroke="currentColor" stroke-width="100">
-                <circle r="234" cx="196" cy="23"></circle>
-                <circle r="234" cx="790" cy="491"></circle>
-            </g>
-        </svg>
-        <!-- Dots -->
-        <!-- prettier-ignore -->
-        <svg class="absolute -top-16 -right-16 text-gray-700"
-             viewBox="0 0 220 192" width="220" height="192" fill="none">
-            <defs>
-                <pattern id="837c3e70-6c3a-44e6-8854-cc48c737b659" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
-                    <rect x="0" y="0" width="4" height="4" fill="currentColor"></rect>
-                </pattern>
-            </defs>
-            <rect width="220" height="192" fill="url(#837c3e70-6c3a-44e6-8854-cc48c737b659)"></rect>
-        </svg>
+
+    <!-- Right Side - Hero Section -->
+    <div class="hidden lg:flex flex-1 bg-gradient-to-br from-emerald-600 via-green-600 to-teal-700 relative overflow-hidden h-screen">
+        <!-- Background Pattern -->
+        <div class="absolute inset-0 opacity-10">
+            <svg class="absolute inset-0 h-full w-full" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <pattern id="signup-pattern" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
+                        <circle cx="30" cy="30" r="3" fill="white" opacity="0.4"/>
+                        <circle cx="10" cy="10" r="1" fill="white" opacity="0.3"/>
+                        <circle cx="50" cy="50" r="1" fill="white" opacity="0.3"/>
+                    </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#signup-pattern)"/>
+            </svg>
+        </div>
+
         <!-- Content -->
-        <!-- <div class="relative z-10 w-full max-w-2xl">
-            <div class="text-7xl font-bold leading-none text-gray-100">
-                <div>Welcome to</div>
-                <div>our community</div>
-            </div>
-            <div class="mt-6 text-lg leading-6 tracking-tight text-gray-400">
-                Fuse helps developers to build organized and well coded
-                dashboards full of beautiful and rich modules. Join us and start
-                building your application today.
-            </div>
-            <div class="mt-8 flex items-center">
-                <div class="flex flex-0 items-center -space-x-1.5">
-                    <img
-                        class="h-10 w-10 flex-0 rounded-full object-cover ring-4 ring-gray-800 ring-offset-1 ring-offset-gray-800"
-                        src="images/avatars/female-18.jpg"
-                    />
-                    <img
-                        class="h-10 w-10 flex-0 rounded-full object-cover ring-4 ring-gray-800 ring-offset-1 ring-offset-gray-800"
-                        src="images/avatars/female-11.jpg"
-                    />
-                    <img
-                        class="h-10 w-10 flex-0 rounded-full object-cover ring-4 ring-gray-800 ring-offset-1 ring-offset-gray-800"
-                        src="images/avatars/male-09.jpg"
-                    />
-                    <img
-                        class="h-10 w-10 flex-0 rounded-full object-cover ring-4 ring-gray-800 ring-offset-1 ring-offset-gray-800"
-                        src="images/avatars/male-16.jpg"
-                    />
+        <div class="relative z-10 flex flex-col justify-center items-center text-center text-white p-8 lg:p-16 w-full">
+            <div class="max-w-md">
+                <h3 class="text-3xl lg:text-4xl font-bold mb-6 leading-tight">
+                    Junte-se à nossa comunidade
+                </h3>
+                <p class="text-lg lg:text-xl mb-8 text-green-100 leading-relaxed">
+                    Milhares de pessoas já transformaram suas vidas com o TTF Diet. Seja a próxima!
+                </p>
+
+                <!-- Stats -->
+                <div class="gap-6 mb-8">
+
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-white">95%</div>
+                        <div class="text-sm text-green-100">Taxa de sucesso</div>
+                    </div>
                 </div>
-                <div class="ml-4 font-medium tracking-tight text-gray-400">
-                    More than 17k people joined us, it's your turn
+
+                <!-- Features list -->
+                <div class="space-y-4 text-left">
+                    <div class="flex items-center space-x-3">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                                <mat-icon class="h-4 w-4" [svgIcon]="'heroicons_outline:academic-cap'"></mat-icon>
+                            </div>
+                        </div>
+                        <span class="text-green-100">Aprenda hábitos saudáveis</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                                <mat-icon class="h-4 w-4" [svgIcon]="'heroicons_outline:chart-bar'"></mat-icon>
+                            </div>
+                        </div>
+                        <span class="text-green-100">Acompanhe seu progresso</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                                <mat-icon class="h-4 w-4" [svgIcon]="'heroicons_outline:users'"></mat-icon>
+                            </div>
+                        </div>
+                        <span class="text-green-100">Comunidade de apoio</span>
+                    </div>
                 </div>
             </div>
-        </div> -->
+
+            <!-- Floating elements -->
+            <div class="absolute top-32 left-16 w-24 h-24 bg-white/5 rounded-full blur-2xl animate-pulse delay-500"></div>
+            <div class="absolute bottom-20 right-20 w-40 h-40 bg-white/5 rounded-full blur-3xl animate-pulse delay-1500"></div>
+        </div>
     </div>
 </div>

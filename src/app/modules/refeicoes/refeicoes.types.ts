@@ -24,6 +24,7 @@ export interface RefeicaoResponse {
     nome: string;
     observacao: string;
     dataHoraRefeicao: string;
+    status: StatusRefeicao;
     alimentos: AlimentoResponse[];
 }
 
@@ -67,9 +68,19 @@ export interface PlanoAlimentarResponse {
     };
 }
 
+export interface StatusRefeicaoDTO {
+    status: StatusRefeicao;
+}
+
+export interface VerificarPendenteResponse {
+    temPendente: boolean;
+}
+
 export type TipoRefeicao = 'Café da manhã' | 'Almoço' | 'Lanche da tarde' | 'Jantar' | 'Lanche da noite';
 
 export type TipoObjetivo = 'perder peso' | 'manter peso' | 'ganhar massa';
+
+export type StatusRefeicao = 'AGUARDANDO' | 'ACEITA' | 'REJEITADA';
 
 export interface PreferenciasRefeicao {
     predefinidas: string[];

@@ -36,6 +36,7 @@ import {
     RefeicaoResponse,
     TipoObjetivo,
     TipoRefeicao,
+    StatusRefeicao,
 } from '../refeicoes.types';
 
 @Component({
@@ -78,7 +79,8 @@ export class AdicionarRefeicaoComponent implements OnInit {
     resultado: RefeicaoResponse | null = null;
     alimentosDisponiveis: AlimentoListItem[] = [];
     editandoAlimento: AlimentoResponse | null = null;
-    refeicaoAceita = false;
+    refeicoesPendentes: RefeicaoResponse[] = [];
+    temRefeicaoPendente = false;
 
     metodoGeracao: 'preferencias' | 'imagem' = 'preferencias';
     selectedImage: File | null = null;
@@ -106,6 +108,7 @@ export class AdicionarRefeicaoComponent implements OnInit {
         this.loadUserProfile();
         this.setupFormWatchers();
         this.carregarAlimentosDisponiveis();
+        this.verificarRefeicoesPendentes();
     }
 
     private initializeForm(): void {
@@ -140,6 +143,40 @@ export class AdicionarRefeicaoComponent implements OnInit {
             });
     }
 
+    private verificarRefeicoesPendentes(): void {
+        this._refeicoesService
+            .verificarRefeicaoPendente()
+            .pipe(takeUntilDestroyed(this._destroyRef))
+            .subscribe({
+                next: (response) => {
+                    this.temRefeicaoPendente = response.temPendente;
+                    if (this.temRefeicaoPendente) {
+                        this.carregarRefeicoesPendentes();
+                    }
+                },
+                error: (error) => {
+                    console.error('Erro ao verificar refeições pendentes:', error);
+                },
+            });
+    }
+
+    private carregarRefeicoesPendentes(): void {
+        this._refeicoesService
+            .buscarRefeicoesPendentes()
+            .pipe(takeUntilDestroyed(this._destroyRef))
+            .subscribe({
+                next: (refeicoes) => {
+                    this.refeicoesPendentes = refeicoes;
+                    if (refeicoes.length > 0) {
+                        this.resultado = refeicoes[0];
+                    }
+                },
+                error: (error) => {
+                    console.error('Erro ao carregar refeições pendentes:', error);
+                },
+            });
+    }
+
     private setupFormWatchers(): void {
         this.form
             .get('refeicao')
@@ -149,6 +186,26 @@ export class AdicionarRefeicaoComponent implements OnInit {
                     this.updatePreferenciasPadrao(refeicao);
                 }
             });
+    }
+
+    onMetodoGeracaoChange(): void {
+        this.limparRefeicaoGerada();
+        this.resetForm();
+    }
+
+    private limparRefeicaoGerada(): void {
+        this.resultado = null;
+        this.selectedImage = null;
+        this.imagePreview = null;
+    }
+
+    private resetForm(): void {
+        this.form.reset();
+        this.form.patchValue({
+            maximo_calorias_por_refeicao: 900,
+        });
+        this.preferenciasPadrao = [];
+        this.updatePreferenciasPadrao('');
     }
 
     private updatePreferenciasPadrao(refeicao: string): void {
@@ -210,75 +267,234 @@ export class AdicionarRefeicaoComponent implements OnInit {
         const formValue = this.form.value;
         const preferencias = this.getPreferenciasSelecionadas();
 
-        const request: RefeicaoRequest = {
+        return {
             objetivo: formValue.objetivo,
+            peso: this.user?.peso,
+            gasto_calorico_basal: this._refeicoesService.calcularGastoCalorico(
+                this.user?.peso || 70,
+                this.user?.altura || 170,
+                this.user?.idade || 25,
+                this.user?.sexo?.toString() || 'MASCULINO',
+                this.user?.nivelAtividade?.toString() || 'MODERADO'
+            ),
             refeicao: formValue.refeicao,
             preferencias: preferencias,
-            maximo_calorias_por_refeicao:
-                formValue.maximo_calorias_por_refeicao,
+            maximo_calorias_por_refeicao: formValue.maximo_calorias_por_refeicao,
         };
-
-        if (this.user?.peso) {
-            request.peso = this.user.peso;
-        }
-
-        if (
-            this.user?.peso &&
-            this.user?.altura &&
-            this.user?.idade &&
-            this.user?.sexo &&
-            this.user?.nivelAtividade
-        ) {
-            request.gasto_calorico_basal =
-                this._refeicoesService.calcularGastoCalorico(
-                    this.user.peso,
-                    this.user.altura,
-                    this.user.idade,
-                    this.user.sexo,
-                    this.user.nivelAtividade
-                );
-        }
-
-        return request;
     }
 
     onSubmit(): void {
-        if (this.form.valid) {
-            this.loading = true;
-            this.resultado = null;
-
-            const request = this.buildRequest();
-
-            this._refeicoesService
-                .gerarESalvarRefeicao(request)
-                .pipe(
-                    finalize(() => (this.loading = false)),
-                    takeUntilDestroyed(this._destroyRef)
-                )
-                .subscribe({
-                    next: (response) => {
-                        this.resultado = response;
-                        this._snackBar.open(
-                            'Refeição gerada e salva com sucesso!',
-                            'Fechar',
-                            {
-                                duration: 3000,
-                                panelClass: ['success-snackbar'],
-                            }
-                        );
-                    },
-                    error: (error) => {
-                        this._snackBar.open(
-                            'Erro ao gerar refeição. Tente novamente.',
-                            'Fechar',
-                            {
-                                duration: 5000,
-                                panelClass: ['error-snackbar'],
-                            }
-                        );
-                    },
-                });
+        if (!this.form.valid) {
+            this._snackBar.open(
+                'Por favor, preencha todos os campos obrigatórios.',
+                'Fechar',
+                {
+                    duration: 3000,
+                    panelClass: ['error-snackbar'],
+                }
+            );
+            return;
         }
+
+        this.loading = true;
+        const request = this.buildRequest();
+
+        this._refeicoesService
+            .gerarESalvarRefeicao(request)
+            .pipe(
+                finalize(() => (this.loading = false)),
+                takeUntilDestroyed(this._destroyRef)
+            )
+            .subscribe({
+                next: (response) => {
+                    this.resultado = response;
+                    if (!this.resultado.status) {
+                        this.resultado.status = 'AGUARDANDO';
+                    }
+                    this.temRefeicaoPendente = this.resultado.status === 'AGUARDANDO';
+
+                    this._snackBar.open(
+                        'Refeição gerada com sucesso! Agora você pode aceitar ou rejeitar.',
+                        'Fechar',
+                        {
+                            duration: 4000,
+                            panelClass: ['success-snackbar'],
+                        }
+                    );
+                },
+                error: (error) => {
+                    console.error('Erro ao gerar refeição:', error);
+                    this._snackBar.open(
+                        'Erro ao gerar refeição. Tente novamente.',
+                        'Fechar',
+                        {
+                            duration: 5000,
+                            panelClass: ['error-snackbar'],
+                        }
+                    );
+                },
+            });
+    }
+
+    aceitarRefeicao(): void {
+        if (!this.resultado) return;
+
+        this.loading = true;
+
+        this._refeicoesService
+            .aceitarRefeicao(this.resultado.id)
+            .pipe(
+                finalize(() => (this.loading = false)),
+                takeUntilDestroyed(this._destroyRef)
+            )
+            .subscribe({
+                next: (refeicaoAtualizada) => {
+                    this._notificationService.success(
+                        'Refeição aceita com sucesso! 🎉 A refeição foi adicionada ao seu planejamento de hoje.',
+                        5000
+                    );
+                    this.resultado = refeicaoAtualizada;
+                    this.resultado.status = 'ACEITA';
+                    this.temRefeicaoPendente = false;
+                    this.verificarRefeicoesPendentes();
+
+                    // Aguarda um momento antes de limpar para o usuário ver o feedback
+                    setTimeout(() => {
+                        this.resetForm();
+                        this.limparRefeicaoGerada();
+                    }, 3000);
+                },
+                error: (error) => {
+                    console.error('Erro ao aceitar refeição:', error);
+                    this._notificationService.error(
+                        'Erro ao aceitar refeição. Tente novamente.'
+                    );
+                },
+            });
+    }
+
+    rejeitarRefeicao(): void {
+        if (!this.resultado) return;
+
+        const dialogRef = this._fuseConfirmationService.open({
+            title: 'Rejeitar refeição',
+            message:
+                'Tem certeza que deseja rejeitar esta refeição? <span class="font-medium">Esta ação não pode ser desfeita!</span>',
+            icon: {
+                show: true,
+                name: 'heroicons_outline:exclamation-triangle',
+                color: 'warn',
+            },
+            actions: {
+                confirm: {
+                    show: true,
+                    label: 'Rejeitar',
+                    color: 'warn',
+                },
+                cancel: {
+                    show: true,
+                    label: 'Cancelar',
+                },
+            },
+            dismissible: true,
+        });
+
+        dialogRef.afterClosed().subscribe((result) => {
+            if (result === 'confirmed') {
+                this.executarRejeicao();
+            }
+        });
+    }
+
+    private executarRejeicao(): void {
+        if (!this.resultado) return;
+
+        this.loading = true;
+
+        this._refeicoesService
+            .rejeitarRefeicao(this.resultado.id)
+            .pipe(
+                finalize(() => (this.loading = false)),
+                takeUntilDestroyed(this._destroyRef)
+            )
+            .subscribe({
+                next: () => {
+                    this._notificationService.error(
+                        'Refeição rejeitada e excluída 🗑️',
+                        4000
+                    );
+                    this.resultado = null;
+                    this.temRefeicaoPendente = false;
+                    this.verificarRefeicoesPendentes();
+                    this.resetForm();
+                    this.limparRefeicaoGerada();
+                },
+                error: (error) => {
+                    console.error('Erro ao rejeitar refeição:', error);
+                    this._notificationService.error(
+                        'Erro ao rejeitar refeição. Tente novamente.'
+                    );
+                },
+            });
+    }
+
+    novaRefeicao(): void {
+        this.resultado = null;
+        this.temRefeicaoPendente = false;
+        this.resetForm();
+        this.limparRefeicaoGerada();
+        this.verificarRefeicoesPendentes();
+    }
+
+    analisarImagem(): void {
+        if (!this.selectedImage) {
+            return;
+        }
+
+        this.loading = true;
+        this.resultado = null;
+
+        const formData = new FormData();
+        formData.append('imagem', this.selectedImage);
+
+        this._httpClient
+            .post<RefeicaoResponse>(
+                'https://ttfdietbackend.tigasolutions.com.br/api/refeicoes/gerar-por-foto',
+                formData
+            )
+            .pipe(
+                finalize(() => (this.loading = false)),
+                takeUntilDestroyed(this._destroyRef)
+            )
+            .subscribe({
+                next: (response) => {
+                    this.resultado = response;
+                    if (!this.resultado.status) {
+                        this.resultado.status = 'AGUARDANDO';
+                    }
+                    this.temRefeicaoPendente = this.resultado.status === 'AGUARDANDO';
+
+                    this._snackBar.open(
+                        'Análise da imagem concluída com sucesso! Agora você pode aceitar ou rejeitar.',
+                        'Fechar',
+                        {
+                            duration: 4000,
+                            panelClass: ['success-snackbar'],
+                        }
+                    );
+                },
+                error: (error) => {
+                    console.error('Erro ao analisar imagem:', error);
+                    this._snackBar.open(
+                        'Erro ao analisar a imagem. Tente novamente.',
+                        'Fechar',
+                        {
+                            duration: 5000,
+                            panelClass: ['error-snackbar'],
+                        }
+                    );
+                },
+            });
     }
 
     editarAlimento(alimento: AlimentoResponse): void {
@@ -443,19 +659,6 @@ export class AdicionarRefeicaoComponent implements OnInit {
         );
     }
 
-    novaRefeicao(): void {
-        this.resultado = null;
-        this.refeicaoAceita = false;
-        this.form.reset();
-        this.form.patchValue({
-            maximo_calorias_por_refeicao: 900,
-        });
-
-        this.selectedImage = null;
-        this.imagePreview = null;
-        this.metodoGeracao = 'preferencias';
-    }
-
     onDragOver(event: DragEvent): void {
         event.preventDefault();
         event.stopPropagation();
@@ -521,53 +724,6 @@ export class AdicionarRefeicaoComponent implements OnInit {
         this.imagePreview = null;
     }
 
-    analisarImagem(): void {
-        if (!this.selectedImage) {
-            return;
-        }
-
-        this.loading = true;
-        this.resultado = null;
-
-        const formData = new FormData();
-        formData.append('imagem', this.selectedImage);
-
-        this._httpClient
-            .post<RefeicaoResponse>(
-                'https://ttfdietbackend.tigasolutions.com.br/api/refeicoes/gerar-por-foto',
-                formData
-            )
-            .pipe(
-                finalize(() => (this.loading = false)),
-                takeUntilDestroyed(this._destroyRef)
-            )
-            .subscribe({
-                next: (response) => {
-                    this.resultado = response;
-
-                    this._snackBar.open(
-                        'Análise da imagem concluída com sucesso!',
-                        'Fechar',
-                        {
-                            duration: 3000,
-                            panelClass: ['success-snackbar'],
-                        }
-                    );
-                },
-                error: (error) => {
-                    console.error('Erro ao analisar imagem:', error);
-                    this._snackBar.open(
-                        'Erro ao analisar a imagem. Tente novamente.',
-                        'Fechar',
-                        {
-                            duration: 5000,
-                            panelClass: ['error-snackbar'],
-                        }
-                    );
-                },
-            });
-    }
-
     private carregarAlimentosDisponiveis(): void {
         this._refeicoesService
             .listarAlimentos()
@@ -578,85 +734,6 @@ export class AdicionarRefeicaoComponent implements OnInit {
                 },
                 error: (error) => {
                     console.error('Erro ao carregar alimentos:', error);
-                },
-            });
-    }
-
-    aceitarRefeicao(): void {
-        if (!this.resultado) return;
-
-        this.refeicaoAceita = true;
-        this._notificationService.success(
-            'Refeição aceita com sucesso! 🎉',
-            4000
-        );
-    }
-
-    rejeitarRefeicao(): void {
-        if (!this.resultado) return;
-
-        const dialogRef = this._fuseConfirmationService.open({
-            title: 'Rejeitar refeição',
-            message:
-                'Tem certeza que deseja rejeitar esta refeição? <span class="font-medium">Esta ação não pode ser desfeita!</span>',
-            icon: {
-                show: true,
-                name: 'heroicons_outline:exclamation-triangle',
-                color: 'warn',
-            },
-            actions: {
-                confirm: {
-                    show: true,
-                    label: 'Rejeitar',
-                    color: 'warn',
-                },
-                cancel: {
-                    show: true,
-                    label: 'Cancelar',
-                },
-            },
-            dismissible: true,
-        });
-
-        dialogRef.afterClosed().subscribe((result) => {
-            if (result === 'confirmed') {
-                this.excluirRefeicao();
-            }
-        });
-    }
-
-    private excluirRefeicao(): void {
-        if (!this.resultado) return;
-
-        this.loading = true;
-
-        this._refeicoesService
-            .excluirRefeicao(this.resultado.id)
-            .pipe(
-                finalize(() => (this.loading = false)),
-                takeUntilDestroyed(this._destroyRef)
-            )
-            .subscribe({
-                next: () => {
-                    this._notificationService.error(
-                        'Refeição rejeitada e excluída 🗑️',
-                        4000
-                    );
-                    this.resultado = null;
-                    this.refeicaoAceita = false;
-
-                    this.form.reset();
-                    this.form.patchValue({
-                        maximo_calorias_por_refeicao: 900,
-                    });
-                    this.selectedImage = null;
-                    this.imagePreview = null;
-                },
-                error: (error) => {
-                    console.error('Erro ao excluir refeição:', error);
-                    this._notificationService.error(
-                        'Erro ao excluir refeição. Tente novamente.'
-                    );
                 },
             });
     }

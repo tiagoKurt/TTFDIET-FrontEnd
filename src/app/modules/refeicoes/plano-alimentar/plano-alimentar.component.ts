@@ -93,7 +93,7 @@ export class PlanoAlimentarComponent implements OnInit {
     private initializeForm(): void {
         this.form = this._formBuilder.group({
             objetivo: ['', Validators.required],
-            maximo_calorias_por_refeicao: [900, [Validators.required, Validators.min(100), Validators.max(10000)]],
+            maximo_calorias_por_refeicao: [900, [Validators.required, Validators.min(100), Validators.max(20000)]],
             preferencias_predefinidas: this._formBuilder.array([]),
             nova_preferencia: [''],
             preferencias_personalizadas: this._formBuilder.array([])

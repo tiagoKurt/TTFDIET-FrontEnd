@@ -43,77 +43,13 @@ export const defaultNavigation: FuseNavigationItem[] = [
                         link: '/refeicoes/adicionar',
                     },
                     {
-                        id: 'refeicoes.historico',
-                        title: 'Plano Alimentar',
-                        type: 'basic',
-                        link: '/refeicoes/historico',
-                    },
-                    {
-                        id: 'refeicoes.preferencias',
-                        title: 'Minhas Preferências',
-                        type: 'basic',
-                        link: '/refeicoes/preferencias',
-                    },
-                    {
                         id: 'refeicoes.minhas-refeicoes',
                         title: 'Minhas Refeições',
                         type: 'basic',
                         link: '/planejamento/minhas-refeicoes',
                     },
                 ],
-            },
-            {
-                id: 'saude',
-                title: 'Saúde',
-                type: 'collapsable',
-                icon: 'heroicons_outline:heart',
-                children: [
-                    {
-                        id: 'saude.dados-corporais',
-                        title: 'Dados corporais',
-                        type: 'basic',
-                        link: '/saude/dados-corporais',
-                    },
-                    {
-                        id: 'saude.progresso',
-                        title: 'Progresso',
-                        type: 'basic',
-                        link: '/saude/progresso',
-                    },
-                    {
-                        id: 'saude.metas-nutricionais',
-                        title: 'Metas nutricionais',
-                        type: 'basic',
-                        link: '/saude/metas-nutricionais',
-                    },
-                ],
-            },
-            {
-                id: 'configuracoes',
-                title: 'Configurações',
-                type: 'collapsable',
-                icon: 'heroicons_outline:cog',
-                children: [
-                    {
-                        id: 'configuracoes.preferencias-alimentares',
-                        title: 'Preferências alimentares',
-                        type: 'basic',
-                        link: '/configuracoes/preferencias-alimentares',
-                    },
-                    {
-                        id: 'configuracoes.restricoes',
-                        title: 'Restrições',
-                        type: 'basic',
-                        link: '/configuracoes/restricoes',
-                    },
-                    {
-                        id: 'configuracoes.notificacoes',
-                        title: 'Notificações',
-                        type: 'basic',
-                        link: '/configuracoes/notificacoes',
-                    },
-                ],
-            },
+            }
         ],
     },
 ];

@@ -23,6 +23,7 @@ import { FuseConfirmationService } from '@fuse/services/confirmation';
 import { TipoRefeicao, TipoObjetivo, AlimentoResponse, RefeicaoRequest, PlanoAlimentarResponse, PlanoAlimentarDetalhado, AlimentoListItem, AlimentoUpdate } from '../../refeicoes/refeicoes.types';
 import { User } from 'app/core/user/user.types';
 import { finalize } from 'rxjs';
+import { from } from 'rxjs';
 
 interface RefeicaoPlano {
     id?: number;
@@ -104,7 +105,7 @@ export class PlanoAlimentarAceitarComponent implements OnInit {
         { value: 'ganhar massa', label: 'Ganhar Massa Muscular' }
     ];
 
-    diasSemana = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo'];
+    diasSemana = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sabado', 'Domingo'];
     preferenciasPadrao: string[] = [];
 
     ngOnInit(): void {
@@ -119,7 +120,7 @@ export class PlanoAlimentarAceitarComponent implements OnInit {
         this.form = this._formBuilder.group({
             objetivo: ['HIPERTROFIA', Validators.required],
             refeicao: ['Café da manhã', Validators.required],
-            maximo_calorias_por_refeicao: [900, [Validators.required, Validators.min(100), Validators.max(2000)]],
+            maximo_calorias_por_refeicao: [900, [Validators.required, Validators.min(100), Validators.max(20000)]],
             preferenciasPredefinidas: this._formBuilder.array([]),
             preferenciasPersonalizadas: this._formBuilder.array([])
         });
@@ -133,7 +134,6 @@ export class PlanoAlimentarAceitarComponent implements OnInit {
                     this.user = user;
                 },
                 error: (error) => {
-                    console.error('Erro ao carregar perfil:', error);
                 }
             });
     }
@@ -197,60 +197,42 @@ export class PlanoAlimentarAceitarComponent implements OnInit {
         const request: RefeicaoRequest = {
             objetivo: formValue.objetivo,
             refeicao: formValue.refeicao,
-            preferencias: preferencias,
-            maximo_calorias_por_refeicao: formValue.maximo_calorias_por_refeicao
+            maximo_calorias_por_refeicao: formValue.maximo_calorias_por_refeicao,
+            preferencias: preferencias
         };
-
-        if (this.user?.peso) {
-            request.peso = this.user.peso;
-        }
-
-        if (this.user?.peso && this.user?.altura && this.user?.idade && this.user?.sexo && this.user?.nivelAtividade) {
-            request.gasto_calorico_basal = this._refeicoesService.calcularGastoCalorico(
-                this.user.peso,
-                this.user.altura,
-                this.user.idade,
-                this.user.sexo,
-                this.user.nivelAtividade
-            );
-        }
 
         return request;
     }
 
     onSubmit(): void {
-        if (!this.form.valid) {
-            this._snackBar.open('Por favor, preencha todos os campos obrigatórios', 'Fechar', { duration: 3000 });
-            return;
+        if (this.form.valid) {
+            this.loading = true;
+            const request = this.buildRequest();
+
+            this._refeicoesService.gerarPlanoAlimentarSemanal(request)
+                .pipe(
+                    finalize(() => this.loading = false),
+                    takeUntilDestroyed(this._destroyRef)
+                )
+                .subscribe({
+                    next: (response) => {
+                        this.resultado = response;
+                        this.planoSemanal = response.plano_alimentar_semanal;
+                        this.organizarPlanoSemanal();
+                        this.planoGerado = true;
+                    },
+                    error: (error) => {
+                        this._snackBar.open('Erro ao gerar plano alimentar', 'Fechar', { duration: 3000 });
+                    }
+                });
         }
-
-        this.loading = true;
-        const request = this.buildRequest();
-
-        this._refeicoesService.gerarPlanoAlimentar(request)
-            .pipe(
-                finalize(() => this.loading = false),
-                takeUntilDestroyed(this._destroyRef)
-            )
-            .subscribe({
-                next: (response) => {
-                    this.resultado = response;
-                    this.planoSemanal = response.plano_alimentar_semanal;
-                    this.organizarPlanoSemanal();
-                    this.planoGerado = true;
-                    this._snackBar.open('Plano alimentar gerado com sucesso! Aceite as refeições que desejar.', 'Fechar', { duration: 3000 });
-                },
-                error: (error) => {
-                    this._snackBar.open('Erro ao gerar plano alimentar', 'Fechar', { duration: 5000 });
-                }
-            });
     }
 
     private organizarPlanoSemanal(): void {
         if (!this.planoSemanal) return;
 
         this.diasPlano = [];
-        const diasOrdem = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo'];
+        const diasOrdem = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sabado', 'Domingo'];
 
         const diasComDatas: { dia: string; data: Date; diasPlano: any }[] = [];
 
@@ -338,28 +320,74 @@ export class PlanoAlimentarAceitarComponent implements OnInit {
 
     aceitarDiaCompleto(diaIndex: number): void {
         const dia = this.diasPlano[diaIndex];
+        const refeicoesParaAceitar = dia.refeicoes.filter(r => !r.aceita);
 
-        const dialogRef = this._fuseConfirmationService.open({
-            title: 'Aceitar Dia Completo',
-            message: `Deseja aceitar todas as ${dia.refeicoes.length} refeições de ${dia.diaSemana}? Elas serão adicionadas ao seu planejamento para hoje.`,
-            actions: {
-                confirm: {
-                    label: 'Aceitar Todas'
+        if (refeicoesParaAceitar.length === 0) {
+            this._snackBar.open('Todas as refeições deste dia já foram aceitas!', 'Fechar', { duration: 3000 });
+            return;
+        }
+
+        this.loading = true;
+
+        const observables = refeicoesParaAceitar.map(refeicao => {
+            const dataRefeicao = this.obterDataParaDia(refeicao.dia);
+            const horaRefeicao = this.obterHoraParaTipoRefeicao(refeicao.tipoRefeicao);
+
+            const dataHoraRefeicao = new Date(dataRefeicao);
+            dataHoraRefeicao.setHours(horaRefeicao.hora, horaRefeicao.minuto, 0, 0);
+
+            const alimentosConvertidos = refeicao.alimentos.map(alimento => ({
+                nome: alimento.nome,
+                quantidade: alimento.quantidade,
+                calorias: alimento.calorias,
+                proteinas: alimento.proteinas,
+                carboidratos: alimento.carboidratos,
+                gordura: alimento.gordura,
+                unidade_medida: this.converterUnidadeMedida(alimento.unidade_medida),
+                mensagem: alimento.mensagem || ''
+            }));
+
+            const refeicaoRequest = {
+                nome: refeicao.tipoRefeicao,
+                dataHoraRefeicao: dataHoraRefeicao.toISOString(),
+                observacao: `Aceito do plano alimentar - ${refeicao.dia}`,
+                alimentos: alimentosConvertidos
+            };
+
+            return this._refeicoesService.adicionarRefeicao(refeicaoRequest);
+        });
+
+        from(Promise.all(observables.map(obs => obs.toPromise())))
+            .pipe(
+                finalize(() => this.loading = false),
+                takeUntilDestroyed(this._destroyRef)
+            )
+            .subscribe({
+                next: (refeicoesCriadas) => {
+                    const idsParaAceitar = refeicoesCriadas.map(r => r.id);
+
+                    this._refeicoesService.aceitarMultiplasRefeicoes(idsParaAceitar)
+                        .pipe(takeUntilDestroyed(this._destroyRef))
+                        .subscribe({
+                            next: () => {
+                                refeicoesParaAceitar.forEach(r => r.aceita = true);
+                                dia.aceito = dia.refeicoes.every(r => r.aceita);
+
+                                this._snackBar.open(
+                                    `Dia ${dia.diaSemana} aceito com sucesso! Todas as ${refeicoesParaAceitar.length} refeições foram adicionadas ao seu planejamento.`,
+                                    'Fechar',
+                                    { duration: 4000 }
+                                );
+                            },
+                            error: (error) => {
+                                this._snackBar.open('Erro ao aceitar algumas refeições', 'Fechar', { duration: 3000 });
+                            }
+                        });
                 },
-                cancel: {
-                    label: 'Cancelar'
+                error: (error) => {
+                    this._snackBar.open('Erro ao criar refeições', 'Fechar', { duration: 3000 });
                 }
-            }
-        });
-
-        dialogRef.afterClosed().subscribe((result) => {
-            if (result === 'confirmed') {
-                dia.refeicoes.forEach(refeicao => {
-                    this.processarAceitacaoRefeicao(refeicao);
-                });
-                dia.aceito = true;
-            }
-        });
+            });
     }
 
     private processarAceitacaoRefeicao(refeicao: RefeicaoPlano): void {
@@ -390,89 +418,92 @@ export class PlanoAlimentarAceitarComponent implements OnInit {
         this._refeicoesService.adicionarRefeicao(refeicaoRequest)
             .pipe(takeUntilDestroyed(this._destroyRef))
             .subscribe({
-                next: () => {
-                    refeicao.aceita = true;
-                    const dataFormatada = this.formatarDataCompleta(dataRefeicao);
-                    this._snackBar.open(`Refeição "${refeicao.tipoRefeicao}" aceita para ${dataFormatada}!`, 'Fechar', { duration: 3000 });
+                next: (refeicaoResponse) => {
+                    this._refeicoesService.aceitarRefeicao(refeicaoResponse.id)
+                        .pipe(takeUntilDestroyed(this._destroyRef))
+                        .subscribe({
+                            next: () => {
+                                refeicao.aceita = true;
+                                this._snackBar.open('Refeição aceita e adicionada ao seu planejamento!', 'Fechar', { duration: 3000 });
+                            },
+                            error: (error) => {
+                                this._snackBar.open('Erro ao aceitar refeição', 'Fechar', { duration: 3000 });
+                            }
+                        });
                 },
                 error: (error) => {
-                    console.error('Erro ao aceitar refeição:', error);
-                    this._snackBar.open('Erro ao aceitar refeição', 'Fechar', { duration: 3000 });
+                    this._snackBar.open('Erro ao adicionar refeição', 'Fechar', { duration: 3000 });
                 }
             });
     }
 
     private converterUnidadeMedida(unidadeApi: string): string {
-        const mapeamento: { [key: string]: string } = {
-            'gramas': 'GRAMA',
-            'grama': 'GRAMA',
-            'g': 'GRAMA',
-            'quilogramas': 'QUILOGRAMA',
-            'quilograma': 'QUILOGRAMA',
-            'kg': 'QUILOGRAMA',
-            'mililitros': 'MILILITRO',
-            'mililitro': 'MILILITRO',
-            'ml': 'MILILITRO',
-            'litros': 'LITRO',
-            'litro': 'LITRO',
-            'l': 'LITRO',
+        const mapUnidades: { [key: string]: string } = {
             'unidades': 'UNIDADE',
             'unidade': 'UNIDADE',
-            'unid': 'UNIDADE',
-            'fatias': 'FATIA',
-            'fatia': 'FATIA',
-            'porcoes': 'PORCAO',
-            'porcao': 'PORCAO',
-            'porção': 'PORCAO',
-            'porções': 'PORCAO',
-            'xicara': 'XICARA',
-            'xícaras': 'XICARA',
+            'gramas': 'GRAMA',
+            'g': 'GRAMA',
+            'ml': 'MILILITRO',
+            'mililitros': 'MILILITRO',
+            'litros': 'LITRO',
+            'L': 'LITRO',
             'colher de sopa': 'COLHER_DE_SOPA',
             'colheres de sopa': 'COLHER_DE_SOPA',
-            'colher de cha': 'COLHER_DE_CHA',
-            'colheres de cha': 'COLHER_DE_CHA',
             'colher de chá': 'COLHER_DE_CHA',
             'colheres de chá': 'COLHER_DE_CHA',
-            'scoops': 'SCOOP',
-            'scoop': 'SCOOP',
-            'unidade pequena': 'UNIDADE_PEQUENA',
-            'unidade media': 'UNIDADE_MEDIA',
-            'unidade média': 'UNIDADE_MEDIA',
-            'unidade grande': 'UNIDADE_GRANDE'
+            'xícara': 'XICARA',
+            'xícaras': 'XICARA',
+            'copo': 'UNIDADE',
+            'copos': 'UNIDADE',
+            'fatia': 'FATIA',
+            'fatias': 'FATIA',
+            'fatia pequena': 'FATIA',
+            'fatia média': 'FATIA',
+            'fatia grande': 'FATIA'
         };
 
-        const unidadeLower = unidadeApi.toLowerCase().trim();
-        return mapeamento[unidadeLower] || 'GRAMA';
+        return mapUnidades[unidadeApi] || 'UNIDADE';
     }
 
     private obterDataParaDia(diaSemana: string): Date {
         const hoje = new Date();
-        const dataBase = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
-        const diaAtual = dataBase.getDay();
+        const diaAtual = hoje.getDay();
 
         const diasSemanaMap: { [key: string]: number } = {
+            'Domingo': 0,
             'Segunda-feira': 1,
             'Terça-feira': 2,
             'Quarta-feira': 3,
             'Quinta-feira': 4,
             'Sexta-feira': 5,
-            'Sábado': 6,
-            'Domingo': 0
+            'Sabado': 6
         };
 
         const diaDesejado = diasSemanaMap[diaSemana];
+
+        if (diaDesejado === undefined) {
+            const dataResultado = new Date(hoje);
+            dataResultado.setHours(0, 0, 0, 0);
+            return dataResultado;
+        }
+
         let diasParaAdicionar = diaDesejado - diaAtual;
 
         if (diasParaAdicionar === 0) {
-            return new Date(dataBase);
+            const agora = new Date();
+            if (agora.getHours() < 22) {
+                diasParaAdicionar = 0;
+            } else {
+                diasParaAdicionar = 7;
+            }
         }
 
         if (diasParaAdicionar < 0) {
             diasParaAdicionar += 7;
         }
 
-        const dataResultado = new Date(dataBase);
-        dataResultado.setDate(dataBase.getDate() + diasParaAdicionar);
+        const dataResultado = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + diasParaAdicionar);
+
         return dataResultado;
     }
 
@@ -589,7 +620,6 @@ export class PlanoAlimentarAceitarComponent implements OnInit {
                     this.planosSalvos = planos;
                 },
                 error: (error) => {
-                    console.error('Erro ao carregar planos salvos:', error);
                 }
             });
     }
@@ -624,17 +654,18 @@ export class PlanoAlimentarAceitarComponent implements OnInit {
     }
 
     voltarParaListaPlanos(): void {
+        this.modoVisualizacao = 'historico';
         this.planoSelecionado = null;
-        this.modoVisualizacao = 'gerar';
         this.diasPlano = [];
         this.planoSemanal = null;
+        this.resultado = null;
         this.planoGerado = false;
     }
 
     excluirPlanoSalvo(planoId: number): void {
         const dialogRef = this._fuseConfirmationService.open({
             title: 'Excluir Plano Salvo',
-            message: 'Deseja excluir este plano salvo? As refeições aceitas continuarão no seu planejamento.',
+            message: 'Tem certeza que deseja excluir este plano alimentar? Esta ação não pode ser desfeita.',
             actions: {
                 confirm: {
                     label: 'Excluir',
@@ -652,14 +683,10 @@ export class PlanoAlimentarAceitarComponent implements OnInit {
                     .pipe(takeUntilDestroyed(this._destroyRef))
                     .subscribe({
                         next: () => {
-                            this._snackBar.open('Plano excluído com sucesso!', 'Fechar', { duration: 3000 });
-                            this.carregarPlanosSalvos();
-                            if (this.planoSelecionado?.id === planoId) {
-                                this.voltarParaListaPlanos();
-                            }
+                            this.planosSalvos = this.planosSalvos.filter(p => p.id !== planoId);
+                            this._snackBar.open('Plano excluído com sucesso', 'Fechar', { duration: 3000 });
                         },
                         error: (error) => {
-                            console.error('Erro ao excluir plano:', error);
                             this._snackBar.open('Erro ao excluir plano', 'Fechar', { duration: 3000 });
                         }
                     });
@@ -668,6 +695,14 @@ export class PlanoAlimentarAceitarComponent implements OnInit {
     }
 
     private carregarAlimentosDisponiveis(): void {
-
+        this._refeicoesService.listarAlimentos()
+            .pipe(takeUntilDestroyed(this._destroyRef))
+            .subscribe({
+                next: (alimentos) => {
+                    this.alimentosDisponiveis = alimentos;
+                },
+                error: (error) => {
+                }
+            });
     }
 }

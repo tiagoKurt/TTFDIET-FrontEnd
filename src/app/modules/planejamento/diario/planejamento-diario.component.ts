@@ -174,7 +174,12 @@ export class PlanejamentoDiarioComponent implements OnInit {
     organizarRefeicoesPorDia(refeicoes: RefeicaoResponse[]): void {
         const refeicoesAgrupadasPorDia = new Map<string, RefeicaoResponse[]>();
 
-        refeicoes.forEach(refeicao => {
+        // Filtrar apenas refeições com status ACEITA
+        const refeicoesAceitas = refeicoes.filter(refeicao =>
+            refeicao.status === 'ACEITA'
+        );
+
+        refeicoesAceitas.forEach(refeicao => {
             const dataRefeicao = new Date(refeicao.dataHoraRefeicao);
             const dataString = dataRefeicao.toISOString().split('T')[0];
 

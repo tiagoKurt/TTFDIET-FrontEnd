@@ -102,9 +102,9 @@
                                type="number"
                                formControlName="maximo_calorias_por_refeicao"
                                min="100"
-                               max="10000"
+                               max="20000"
                                required>
-                        <mat-hint>Entre 100 e 10.000 calorias</mat-hint>
+                        <mat-hint>Entre 100 e 20.000 calorias</mat-hint>
                         <mat-error *ngIf="form.get('maximo_calorias_por_refeicao')?.hasError('required')">
                             Informe o máximo de calorias
                         </mat-error>

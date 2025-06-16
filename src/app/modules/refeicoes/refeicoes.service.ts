@@ -9,7 +9,11 @@ import {
     PlanoAlimentarResponse,
     RefeicaoRequest,
     RefeicaoResponse,
+    StatusRefeicaoDTO,
+    StatusRefeicao,
+    VerificarPendenteResponse,
 } from './refeicoes.types';
+import { map } from 'rxjs/operators';
 
 @Injectable({
     providedIn: 'root',
@@ -17,20 +21,13 @@ import {
 export class RefeicoesService {
     private _httpClient = inject(HttpClient);
 
-    private readonly REFEICAO_URL =
-        'https://agenteia.tigasolutions.com.br/refeicao';
-    private readonly PLANO_URL =
-        'https://ttfdietbackend.tigasolutions.com.br/api/planos/gerar';
-    private readonly PLANO_SALVAR_URL =
-        'https://ttfdietbackend.tigasolutions.com.br/api/planos/gerar-e-salvar';
-    private readonly PLANOS_URL =
-        'https://ttfdietbackend.tigasolutions.com.br/api/planos';
-    private readonly BACKEND_URL =
-        'https://ttfdietbackend.tigasolutions.com.br/api/refeicoes';
-    private readonly ALIMENTOS_URL =
-        'https://ttfdietbackend.tigasolutions.com.br/api/alimentos';
-    private readonly MINHAS_REFEICOES_URL =
-        'https://ttfdietbackend.tigasolutions.com.br/api/minhas-refeicoes';
+    private readonly REFEICAO_URL = 'https://agenteia.tigasolutions.com.br/refeicao';
+    private readonly PLANO_URL = 'http://localhost:8080/api/planos/gerar';
+    private readonly PLANO_SALVAR_URL = 'http://localhost:8080/api/planos/gerar-e-salvar';
+    private readonly PLANOS_URL = 'http://localhost:8080/api/planos';
+    private readonly BACKEND_URL = 'http://localhost:8080/api/refeicoes';
+    private readonly ALIMENTOS_URL = 'http://localhost:8080/api/alimentos';
+    private readonly MINHAS_REFEICOES_URL = 'http://localhost:8080/api/minhas-refeicoes';
 
     gerarRefeicao(request: RefeicaoRequest): Observable<AlimentoResponse[]> {
         return this._httpClient.post<AlimentoResponse[]>(
@@ -273,5 +270,54 @@ export class RefeicoesService {
         };
 
         return preferencias[tipoRefeicao] || [];
+    }
+
+    alterarStatusRefeicao(refeicaoId: number, status: StatusRefeicao): Observable<RefeicaoResponse> {
+        const statusDTO: StatusRefeicaoDTO = { status };
+        return this._httpClient.put<RefeicaoResponse>(
+            `${this.BACKEND_URL}/${refeicaoId}/status`,
+            statusDTO
+        );
+    }
+
+    buscarRefeicoesPorStatus(status: StatusRefeicao): Observable<RefeicaoResponse[]> {
+        return this._httpClient.get<RefeicaoResponse[]>(
+            `${this.BACKEND_URL}/status/${status}`
+        );
+    }
+
+    buscarRefeicoesPendentes(): Observable<RefeicaoResponse[]> {
+        return this._httpClient.get<RefeicaoResponse[]>(
+            `${this.BACKEND_URL}/pendentes`
+        );
+    }
+
+    verificarRefeicaoPendente(): Observable<VerificarPendenteResponse> {
+        return this._httpClient.get<VerificarPendenteResponse>(
+            `${this.BACKEND_URL}/tem-pendente`
+        );
+    }
+
+    contarRefeicoesPendentes(): Observable<{totalPendentes: number}> {
+        return this._httpClient.get<{totalPendentes: number}>(
+            `${this.BACKEND_URL}/contar-pendentes`
+        );
+    }
+
+    aceitarRefeicao(refeicaoId: number): Observable<RefeicaoResponse> {
+        return this.alterarStatusRefeicao(refeicaoId, 'ACEITA');
+    }
+
+    rejeitarRefeicao(refeicaoId: number): Observable<void> {
+        return this.alterarStatusRefeicao(refeicaoId, 'REJEITADA').pipe(
+            map(() => void 0)
+        );
+    }
+
+    aceitarMultiplasRefeicoes(refeicaoIds: number[]): Observable<RefeicaoResponse[]> {
+        return this._httpClient.post<RefeicaoResponse[]>(
+            `${this.BACKEND_URL}/aceitar-multiplas`,
+            refeicaoIds
+        );
     }
 }

@@ -18,6 +18,7 @@ import { fuseAnimations } from '@fuse/animations';
 import { FuseAlertComponent, FuseAlertType } from '@fuse/components/alert';
 import { AuthService } from 'app/core/auth/auth.service';
 import { NotificationService } from 'app/core/services/notification.service';
+import { CommonModule } from '@angular/common';
 
 @Component({
     selector: 'auth-sign-in',
@@ -26,6 +27,7 @@ import { NotificationService } from 'app/core/services/notification.service';
     animations: fuseAnimations,
     standalone: true,
     imports: [
+        CommonModule,
         RouterLink,
         FuseAlertComponent,
         FormsModule,
@@ -37,6 +39,21 @@ import { NotificationService } from 'app/core/services/notification.service';
         MatCheckboxModule,
         MatProgressSpinnerModule,
     ],
+    styles: [`
+        auth-sign-in {
+            display: block;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+        }
+
+        .auth-container {
+            height: 100vh;
+            width: 100vw;
+            max-height: 100vh;
+            max-width: 100vw;
+        }
+    `]
 })
 export class AuthSignInComponent implements OnInit {
     @ViewChild('signInNgForm') signInNgForm: NgForm;
@@ -47,6 +64,7 @@ export class AuthSignInComponent implements OnInit {
     };
     signInForm: UntypedFormGroup;
     showAlert: boolean = false;
+    isLoading: boolean = false;
 
     /**
      * Constructor
@@ -70,8 +88,15 @@ export class AuthSignInComponent implements OnInit {
         // Create the form
         this.signInForm = this._formBuilder.group({
             email: ['', [Validators.required, Validators.email]],
-            senha: ['', Validators.required],
-            rememberMe: [''],
+            senha: ['', [Validators.required, Validators.minLength(6)]],
+            rememberMe: [false],
+        });
+
+        // Subscribe to form value changes for real-time validation feedback
+        this.signInForm.valueChanges.subscribe(() => {
+            if (this.showAlert && this.alert.type === 'error') {
+                this.showAlert = false;
+            }
         });
     }
 
@@ -88,8 +113,12 @@ export class AuthSignInComponent implements OnInit {
 
         // Return if the form is invalid
         if (this.signInForm.invalid) {
+            this._showFormErrors();
             return;
         }
+
+        // Set loading state
+        this.isLoading = true;
 
         // Disable the form
         this.signInForm.disable();
@@ -102,7 +131,7 @@ export class AuthSignInComponent implements OnInit {
 
         // Prepare login data
         const loginData = {
-            email: formValues.email?.trim(),
+            email: formValues.email?.trim().toLowerCase(),
             senha: formValues.senha,
         };
 
@@ -111,7 +140,7 @@ export class AuthSignInComponent implements OnInit {
             this._notificationService.error(
                 'Por favor, preencha email e senha'
             );
-            this.signInForm.enable();
+            this._resetForm();
             return;
         }
 
@@ -122,21 +151,29 @@ export class AuthSignInComponent implements OnInit {
                 this._notificationService.success(
                     'Login realizado com sucesso!'
                 );
-                console.log(response);
+
+                // Set success alert
+                this.alert = {
+                    type: 'success',
+                    message: 'Login realizado com sucesso! Redirecionando...',
+                };
+                this.showAlert = true;
+
                 // Check preRegister status and redirect accordingly
-                if (response.user.preRegister === true) {
-                    this._router.navigate(['/home']);
-                } else {
-                    this._router.navigate(['/pre-register']);
-                }
+                setTimeout(() => {
+                    if (response.user.preRegister === true) {
+                        this._router.navigate(['/home']);
+                    } else {
+                        this._router.navigate(['/pre-register']);
+                    }
+                }, 1500);
             },
             error: (error) => {
-                // Re-enable the form
-                this.signInForm.enable();
+                // Reset form state
+                this._resetForm();
 
                 // Show error notification
-                const errorMessage =
-                    error.error?.message || 'Email ou senha incorretos';
+                const errorMessage = this._getErrorMessage(error);
                 this._notificationService.error(errorMessage);
 
                 // Set the alert
@@ -149,5 +186,81 @@ export class AuthSignInComponent implements OnInit {
                 this.showAlert = true;
             },
         });
+    }
+
+    /**
+     * Get user-friendly error message
+     */
+    private _getErrorMessage(error: any): string {
+        if (error.status === 401) {
+            return 'Email ou senha incorretos. Verifique suas credenciais.';
+        } else if (error.status === 403) {
+            return 'Sua conta foi bloqueada. Entre em contato com o suporte.';
+        } else if (error.status === 404) {
+            return 'Conta não encontrada. Verifique seu email ou crie uma nova conta.';
+        } else if (error.status === 0) {
+            return 'Erro de conexão. Verifique sua internet e tente novamente.';
+        } else {
+            return error.error?.message || 'Erro inesperado. Tente novamente em alguns minutos.';
+        }
+    }
+
+    /**
+     * Show form validation errors
+     */
+    private _showFormErrors(): void {
+        const emailControl = this.signInForm.get('email');
+        const senhaControl = this.signInForm.get('senha');
+
+        if (emailControl?.hasError('required')) {
+            this._notificationService.error('Email é obrigatório');
+        } else if (emailControl?.hasError('email')) {
+            this._notificationService.error('Por favor, insira um email válido');
+        } else if (senhaControl?.hasError('required')) {
+            this._notificationService.error('Senha é obrigatória');
+        } else if (senhaControl?.hasError('minlength')) {
+            this._notificationService.error('Senha deve ter pelo menos 6 caracteres');
+        }
+    }
+
+    /**
+     * Reset form to initial state
+     */
+    private _resetForm(): void {
+        this.isLoading = false;
+        this.signInForm.enable();
+    }
+
+    /**
+     * Check if field has error and is touched
+     */
+    hasFieldError(fieldName: string, errorType?: string): boolean {
+        const field = this.signInForm.get(fieldName);
+        if (!field) return false;
+
+        if (errorType) {
+            return field.hasError(errorType) && field.touched;
+        }
+        return field.invalid && field.touched;
+    }
+
+    /**
+     * Get field error message
+     */
+    getFieldErrorMessage(fieldName: string): string {
+        const field = this.signInForm.get(fieldName);
+        if (!field || !field.errors) return '';
+
+        if (field.hasError('required')) {
+            return `${fieldName === 'email' ? 'Email' : 'Senha'} é obrigatório`;
+        }
+        if (field.hasError('email')) {
+            return 'Por favor, insira um endereço de email válido';
+        }
+        if (field.hasError('minlength')) {
+            return 'Senha deve ter pelo menos 6 caracteres';
+        }
+
+        return 'Campo inválido';
     }
 }

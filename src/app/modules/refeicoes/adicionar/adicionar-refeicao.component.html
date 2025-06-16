@@ -7,12 +7,34 @@
         </p>
     </div>
 
+    <mat-card *ngIf="temRefeicaoPendente && !resultado" class="p-4 bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-700">
+        <div class="flex items-center space-x-3">
+            <mat-icon class="text-orange-600 dark:text-orange-400">pending_actions</mat-icon>
+            <div class="flex-1">
+                <h3 class="text-lg font-semibold text-orange-800 dark:text-orange-200">
+                    Você tem {{ refeicoesPendentes.length }} refeição(ões) aguardando aprovação
+                </h3>
+                <p class="text-orange-700 dark:text-orange-300 text-sm">
+                    Aceite ou rejeite suas refeições pendentes antes de gerar novas.
+                </p>
+            </div>
+            <button mat-button
+                    color="primary"
+                    (click)="carregarRefeicoesPendentes()"
+                    class="text-orange-600 dark:text-orange-400">
+                Ver Pendentes
+            </button>
+        </div>
+    </mat-card>
+
     <!-- Seletor do Método de Geração -->
     <mat-card class="p-6">
         <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
             Como você gostaria de gerar sua refeição?
         </h3>
-        <mat-radio-group [(ngModel)]="metodoGeracao" class="method-selection flex flex-col space-y-3">
+        <mat-radio-group [(ngModel)]="metodoGeracao"
+                         (ngModelChange)="onMetodoGeracaoChange()"
+                         class="method-selection flex flex-col space-y-3">
             <mat-radio-button value="preferencias" class="w-full">
                 <div class="flex items-center space-x-3">
                     <mat-icon>restaurant_menu</mat-icon>
@@ -261,13 +283,15 @@
                     Sua Refeição Personalizada
                 </h2>
                 <div class="flex gap-3">
-                    <div *ngIf="!refeicaoAceita" class="flex gap-2">
+                    <div *ngIf="resultado.status === 'AGUARDANDO'" class="flex gap-2">
                         <button mat-raised-button
                                 color="primary"
                                 (click)="aceitarRefeicao()"
+                                [disabled]="loading"
                                 class="bg-green-600 hover:bg-green-700 text-white">
-                            <mat-icon>check_circle</mat-icon>
-                            Aceitar
+                            <mat-spinner *ngIf="loading" diameter="16" class="mr-2"></mat-spinner>
+                            <mat-icon *ngIf="!loading">check_circle</mat-icon>
+                            {{ loading ? 'Aceitando...' : 'Aceitar' }}
                         </button>
                         <button mat-raised-button
                                 color="warn"
@@ -279,7 +303,7 @@
                         </button>
                     </div>
 
-                    <div *ngIf="refeicaoAceita" class="flex items-center gap-2">
+                    <div *ngIf="resultado.status === 'ACEITA'" class="flex items-center gap-2">
                         <div class="flex items-center gap-2 bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-200 px-4 py-2 rounded-lg">
                             <mat-icon class="text-green-600 dark:text-green-400">check_circle</mat-icon>
                             <span class="font-medium">Refeição Aceita</span>
@@ -290,6 +314,12 @@
                             <mat-icon>refresh</mat-icon>
                             Nova Refeição
                         </button>
+                    </div>
+
+                    <!-- Status de Aguardando com indicador visual -->
+                    <div *ngIf="resultado.status === 'AGUARDANDO'" class="flex items-center gap-2 bg-orange-100 dark:bg-orange-800 text-orange-800 dark:text-orange-200 px-4 py-2 rounded-lg ml-4">
+                        <mat-icon class="text-orange-600 dark:text-orange-400 animate-pulse">pending_actions</mat-icon>
+                        <span class="font-medium">Aguardando Aprovação</span>
                     </div>
                 </div>
             </div>

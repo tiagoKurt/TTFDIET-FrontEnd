@@ -23,6 +23,7 @@ import {
     EstatisticasSemanais,
     HomeDashboardService,
 } from './home-dashboard.service';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 interface MetricasSaude {
     imc: number;
@@ -82,7 +83,8 @@ export class HomeComponent implements OnInit, OnDestroy {
     };
     planejamentoSemanal: any;
     insightsPlanejamento: any[] = [];
-    dadosInsights: any = null; // Para armazenar dados do modal
+    dadosInsights: any = null;
+    totalRefeicoesPendentes: number = 0;
 
     perfilCompleto: boolean = false;
     proximaEtapa: string = '';
@@ -97,7 +99,8 @@ export class HomeComponent implements OnInit, OnDestroy {
         private apiService: ApiService,
         private _dashboardService: HomeDashboardService,
         private _metasService: MetasService,
-        private _refeicoesService: RefeicoesService
+        private _refeicoesService: RefeicoesService,
+        private _snackBar: MatSnackBar
     ) {}
 
     ngOnInit(): void {
@@ -238,25 +241,26 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
 
     private carregarDadosDashboard(): void {
+        if (!this.user?.id) return;
+
         combineLatest([
             this._dashboardService.carregarConsumoDiario(),
-            this._dashboardService.carregarEstatisticasSemanaisComDados(),
-            this._metasService.listarMetas(),
-            this._dashboardService.obterPlanejamentoSemanal(),
+            this._dashboardService.carregarEstatisticasSemanais(),
+            this._dashboardService.carregarRefeicoesPendentes(),
+            this._metasService.listarMetas()
         ])
             .pipe(takeUntil(this._unsubscribeAll))
             .subscribe({
-                next: ([consumo, estatisticas, metas, planejamento]) => {
+                next: ([consumo, estatisticas, pendentes, metas]) => {
                     this.atualizarDashboard(consumo);
                     this.estatisticas = estatisticas;
+                    this.totalRefeicoesPendentes = pendentes;
                     this.metas = metas;
-                    this.planejamentoSemanal = planejamento;
                     this.atualizarResumoMetas();
                     this.gerarRecomendacoesPersonalizadas(consumo);
-                    this.insightsPlanejamento =
-                        this._dashboardService.gerarInsightsPlanejamento(
-                            planejamento
-                        );
+                },
+                error: (error) => {
+                    console.error('Erro ao carregar dados do dashboard:', error);
                 },
             });
     }
@@ -345,8 +349,26 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
 
     registrarAgua(): void {
-        console.log('Registrar água');
-        // this._dashboardService.registrarConsumoAgua(250).subscribe();
+        const quantidade = 250; // ml por padrão
+        console.log('Registrando água:', quantidade);
+
+        this._snackBar.open(`${quantidade}ml de água registrada!`, 'Fechar', {
+            duration: 3000,
+            panelClass: ['success-snackbar'],
+        });
+    }
+
+    executarAcaoRecomendacao(acao: string): void {
+        switch (acao) {
+            case 'Registrar água':
+                this.registrarAgua();
+                break;
+            case 'Nova refeição':
+                this.registrarRefeicao();
+                break;
+            default:
+                console.log('Ação não implementada:', acao);
+        }
     }
 
     verPlanejamento(): void {
@@ -355,6 +377,10 @@ export class HomeComponent implements OnInit, OnDestroy {
 
     verMetas(): void {
         this.router.navigate(['/metas']);
+    }
+
+    verRefeicoesPendentes(): void {
+        this.router.navigate(['/planejamento/semanal']);
     }
 
     verHistorico(): void {
@@ -454,7 +480,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
 
     obterDiasComPlanejamento(): number {
-        return this.planejamentoSemanal?.totalDiasComPlano || 0;
+        return this.planejamentoSemanal?.diasPlanejados || 0;
     }
 
     obterTotalRefeicoesSemana(): number {
@@ -462,7 +488,8 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
 
     obterPorcentagemPlanejamento(): number {
-        return this.planejamentoSemanal?.porcentagemPlanejamento || 0;
+        const diasPlanejados = this.planejamentoSemanal?.diasPlanejados || 0;
+        return (diasPlanejados / 7) * 100;
     }
 
     trackByRecomendacao(
@@ -548,25 +575,17 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
 
     private carregarPlanejamentoSemanal(): void {
-        this._dashboardService
-            .buscarRefeicoesSemanaAtual()
+        this._dashboardService.obterPlanejamentoSemanalMelhorado()
             .pipe(takeUntil(this._unsubscribeAll))
             .subscribe({
-                next: (refeicoes) => {
-                    this.planejamentoSemanal =
-                        this._dashboardService.processarPlanejamentoSemanal(
-                            refeicoes
-                        );
-                    this.insightsPlanejamento =
-                        this.planejamentoSemanal.insights || [];
+                next: (planejamento) => {
+                    this.planejamentoSemanal = planejamento;
+                    this.insightsPlanejamento = this._dashboardService.gerarInsightsPlanejamento(planejamento);
                 },
                 error: (error) => {
-                    console.error(
-                        'Erro ao carregar planejamento semanal:',
-                        error
-                    );
+                    console.error('Erro ao carregar planejamento semanal:', error);
                     this.planejamentoSemanal = this.gerarPlanejamentoExemplo();
-                },
+                }
             });
     }
 

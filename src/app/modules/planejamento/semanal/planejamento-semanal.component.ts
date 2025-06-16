@@ -61,35 +61,56 @@ export class PlanejamentoSemanalComponent implements OnInit {
     ) {}
 
     ngOnInit(): void {
-        this.carregarPlanosSalvos();
+        this.carregarRefeicoesAceitas();
     }
 
-    carregarPlanosSalvos(): void {
+    carregarRefeicoesAceitas(): void {
         this.carregando = true;
 
-        this.refeicoesService.listarPlanos().subscribe({
-            next: (planos) => {
-                console.log('Planos salvos carregados:', planos);
-                this.planosSalvos = planos;
-                this.organizarRefeicoesPorDia();
+        // Buscar todas as refeições aceitas
+        this.refeicoesService.listarMinhasRefeicoes().subscribe({
+            next: (refeicoes) => {
+                console.log('Refeições carregadas:', refeicoes);
+                // Filtrar apenas refeições aceitas
+                const refeicoesAceitas = refeicoes.filter(r => r.status === 'ACEITA');
+                this.organizarRefeicoesPorDiaSemana(refeicoesAceitas);
+                this.carregarECombinarComPlanosPendentes();
                 this.carregando = false;
             },
             error: (error) => {
-                console.error('Erro ao carregar planos salvos:', error);
-                this.snackBar.open('Erro ao carregar planos alimentares', 'Fechar', { duration: 3000 });
+                console.error('Erro ao carregar refeições:', error);
+                this.snackBar.open('Erro ao carregar refeições aceitas', 'Fechar', { duration: 3000 });
                 this.carregando = false;
             }
         });
     }
 
-    organizarRefeicoesPorDia(): void {
+    carregarECombinarComPlanosPendentes(): void {
+        // Carregar planos salvos para mostrar refeições pendentes
+        this.refeicoesService.listarPlanos().subscribe({
+            next: (planos) => {
+                this.planosSalvos = planos;
+                // Aqui você pode adicionar lógica para mostrar refeições pendentes dos planos
+            },
+            error: (error) => {
+                console.error('Erro ao carregar planos salvos:', error);
+            }
+        });
+    }
+
+    organizarRefeicoesPorDiaSemana(refeicoes: RefeicaoResponse[]): void {
         const diasMap = new Map<string, DiaComRefeicoes>();
 
-        this.diasSemana.forEach((dia, index) => {
-            const dataCompleta = this.getDataProximoDia(index + 1); // 1 = segunda, 7 = domingo
-            diasMap.set(dia, {
-                dia,
-                dataCompleta,
+        // Criar os próximos 7 dias
+        for (let i = 0; i < 7; i++) {
+            const data = new Date();
+            data.setDate(data.getDate() + i);
+            const diaSemana = this.obterNomeDiaSemana(data);
+            const dataKey = `${data.getFullYear()}-${data.getMonth()}-${data.getDate()}`;
+
+            diasMap.set(dataKey, {
+                dia: `${diaSemana} - ${data.getDate()}`,
+                dataCompleta: data,
                 refeicoes: [],
                 totalCalorias: 0,
                 totalProteinas: 0,
@@ -97,37 +118,43 @@ export class PlanejamentoSemanalComponent implements OnInit {
                 totalGorduras: 0,
                 expandido: false
             });
+        }
+
+        // Organizar refeições por data
+        refeicoes.forEach(refeicao => {
+            const dataRefeicao = new Date(refeicao.dataHoraRefeicao);
+            const dataKey = `${dataRefeicao.getFullYear()}-${dataRefeicao.getMonth()}-${dataRefeicao.getDate()}`;
+
+            const diaData = diasMap.get(dataKey);
+            if (diaData) {
+                const refeicaoComPlano: RefeicaoComPlano = {
+                    ...refeicao,
+                    planoId: 0, // Não tem plano específico quando é refeição aceita
+                    diaSemana: this.obterNomeDiaSemana(dataRefeicao),
+                    dataFormatada: this.formatarData(dataRefeicao)
+                };
+
+                diaData.refeicoes.push(refeicaoComPlano);
+
+                const caloriasRefeicao = refeicao.alimentos.reduce((total, alimento) => total + alimento.calorias, 0);
+                const proteinasRefeicao = refeicao.alimentos.reduce((total, alimento) => total + alimento.proteinas, 0);
+                const carboidratosRefeicao = refeicao.alimentos.reduce((total, alimento) => total + alimento.carboidratos, 0);
+                const gordurasRefeicao = refeicao.alimentos.reduce((total, alimento) => total + alimento.gordura, 0);
+
+                diaData.totalCalorias += caloriasRefeicao;
+                diaData.totalProteinas += proteinasRefeicao;
+                diaData.totalCarboidratos += carboidratosRefeicao;
+                diaData.totalGorduras += gordurasRefeicao;
+            }
         });
 
-        this.planosSalvos.forEach(plano => {
-            plano.refeicoes.forEach((refeicao, index) => {
-                const diaSemana = this.diasSemana[index % this.diasSemana.length];
-                const diaData = diasMap.get(diaSemana);
+        this.diasComRefeicoes = Array.from(diasMap.values());
+        console.log('Dias organizados com refeições:', this.diasComRefeicoes);
+    }
 
-                if (diaData) {
-                    const refeicaoComPlano: RefeicaoComPlano = {
-                        ...refeicao,
-                        planoId: plano.id,
-                        diaSemana,
-                        dataFormatada: this.formatarData(diaData.dataCompleta)
-                    };
-
-                    diaData.refeicoes.push(refeicaoComPlano);
-
-                    const caloriasRefeicao = refeicao.alimentos.reduce((total, alimento) => total + alimento.calorias, 0);
-                    const proteinasRefeicao = refeicao.alimentos.reduce((total, alimento) => total + alimento.proteinas, 0);
-                    const carboidratosRefeicao = refeicao.alimentos.reduce((total, alimento) => total + alimento.carboidratos, 0);
-                    const gordurasRefeicao = refeicao.alimentos.reduce((total, alimento) => total + alimento.gordura, 0);
-
-                    diaData.totalCalorias += caloriasRefeicao;
-                    diaData.totalProteinas += proteinasRefeicao;
-                    diaData.totalCarboidratos += carboidratosRefeicao;
-                    diaData.totalGorduras += gordurasRefeicao;
-                }
-            });
-        });
-
-        this.diasComRefeicoes = Array.from(diasMap.values()).filter(dia => dia.refeicoes.length > 0);
+    obterNomeDiaSemana(data: Date): string {
+        const dias = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+        return dias[data.getDay()];
     }
 
     getDataProximoDia(diaSemana: number): Date {
@@ -174,7 +201,18 @@ export class PlanejamentoSemanalComponent implements OnInit {
     }
 
     aceitarRefeicao(refeicao: RefeicaoComPlano): void {
-        const hoje = new Date();
+        // Buscar o dia correto da refeição no planejamento semanal
+        const diaRefeicao = this.diasComRefeicoes.find(d =>
+            d.refeicoes.some(r => r.id === refeicao.id && r.planoId === refeicao.planoId)
+        );
+
+        if (!diaRefeicao) {
+            console.error('Dia da refeição não encontrado');
+            this.snackBar.open('Erro: não foi possível determinar o dia da refeição', 'Fechar', { duration: 3000 });
+            return;
+        }
+
+        const dataRefeicao = new Date(diaRefeicao.dataCompleta);
         const periodoRefeicao = this.obterPeriodoRefeicao(refeicao.nome);
 
         const horariosRefeicao = {
@@ -187,12 +225,12 @@ export class PlanejamentoSemanalComponent implements OnInit {
         };
 
         const horario = horariosRefeicao[periodoRefeicao] || horariosRefeicao['Refeição'];
-        hoje.setHours(horario.hora, horario.minuto, 0, 0);
+        dataRefeicao.setHours(horario.hora, horario.minuto, 0, 0);
 
         const novaRefeicao = {
             nome: `${periodoRefeicao} - ${refeicao.nome}`,
             observacao: `Refeição aceita do plano alimentar - ${refeicao.observacao || ''}`,
-            dataHoraRefeicao: hoje.toISOString(),
+            dataHoraRefeicao: dataRefeicao.toISOString(),
             alimentos: refeicao.alimentos.map(alimento => ({
                 nome: alimento.nome,
                 quantidade: alimento.quantidade,
@@ -201,24 +239,26 @@ export class PlanejamentoSemanalComponent implements OnInit {
                 carboidratos: alimento.carboidratos,
                 gordura: alimento.gordura,
                 unidade_medida: alimento.unidade_medida,
-                mensagem: alimento.mensagem
+                mensagem: alimento.mensagem || ''
             }))
         };
 
         this.refeicoesService.adicionarRefeicao(novaRefeicao).subscribe({
-            next: (refeicaoSalva) => {
-                                this.snackBar.open(
-                    `Refeição "${periodoRefeicao}" adicionada ao planejamento diário!`,
-                    'Ver Planejamento',
-                    {
-                        duration: 5000
+            next: (refeicaoResponse) => {
+                this.refeicoesService.aceitarRefeicao(refeicaoResponse.id).subscribe({
+                    next: () => {
+                        const dataFormatada = this.formatarData(dataRefeicao);
+                        this.snackBar.open(`Refeição "${periodoRefeicao}" aceita para ${dataFormatada}!`, 'Fechar', { duration: 3000 });
+                    },
+                    error: (error) => {
+                        console.error('Erro ao aceitar refeição:', error);
+                        this.snackBar.open('Erro ao aceitar refeição', 'Fechar', { duration: 3000 });
                     }
-                );
-                console.log('Refeição aceita e salva:', refeicaoSalva);
+                });
             },
             error: (error) => {
-                console.error('Erro ao aceitar refeição:', error);
-                this.snackBar.open('Erro ao aceitar refeição', 'Fechar', { duration: 3000 });
+                console.error('Erro ao adicionar refeição:', error);
+                this.snackBar.open('Erro ao adicionar refeição', 'Fechar', { duration: 3000 });
             }
         });
     }

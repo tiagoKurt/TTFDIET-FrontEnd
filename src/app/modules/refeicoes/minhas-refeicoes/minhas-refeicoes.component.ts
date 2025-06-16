@@ -12,12 +12,16 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatTabsModule } from '@angular/material/tabs';
+import { MatChipsModule } from '@angular/material/chips';
+import { ActivatedRoute } from '@angular/router';
 import { finalize } from 'rxjs';
 import { RefeicoesService } from '../refeicoes.service';
 import {
     AlimentoResponse,
     AlimentoUpdate,
     RefeicaoResponse,
+    StatusRefeicao,
 } from '../refeicoes.types';
 
 @Component({
@@ -36,6 +40,8 @@ import {
         MatProgressSpinnerModule,
         MatExpansionModule,
         MatTooltipModule,
+        MatTabsModule,
+        MatChipsModule,
     ],
     templateUrl: './minhas-refeicoes.component.html',
     styleUrls: ['./minhas-refeicoes.component.scss'],
@@ -44,13 +50,117 @@ export class MinhasRefeicoesComponent implements OnInit {
     private _refeicoesService = inject(RefeicoesService);
     private _snackBar = inject(MatSnackBar);
     private _destroyRef = inject(DestroyRef);
+    private _route = inject(ActivatedRoute);
 
     refeicoes: RefeicaoResponse[] = [];
+    refeicoesPendentes: RefeicaoResponse[] = [];
     loading = false;
     alimentoEditando: { refeicaoId: number; alimentoId: number } | null = null;
+    tabSelecionada = 0;
 
     ngOnInit(): void {
+        this._route.queryParams.pipe(takeUntilDestroyed(this._destroyRef)).subscribe(params => {
+            if (params['tab'] === 'pendentes') {
+                this.tabSelecionada = 1;
+            }
+        });
+
         this.carregarRefeicoes();
+        this.carregarRefeicoesPendentes();
+    }
+
+    carregarRefeicoesPendentes(): void {
+        this.loading = true;
+        this._refeicoesService
+            .buscarRefeicoesPendentes()
+            .pipe(
+                finalize(() => (this.loading = false)),
+                takeUntilDestroyed(this._destroyRef)
+            )
+            .subscribe({
+                next: (refeicoes) => {
+                    this.refeicoesPendentes = refeicoes;
+                },
+                error: (error) => {
+                    this._snackBar.open(
+                        'Erro ao carregar refeições pendentes. Tente novamente.',
+                        'Fechar',
+                        {
+                            duration: 5000,
+                            panelClass: ['error-snackbar'],
+                        }
+                    );
+                },
+            });
+    }
+
+    aceitarRefeicao(refeicaoId: number): void {
+        this.loading = true;
+        this._refeicoesService
+            .aceitarRefeicao(refeicaoId)
+            .pipe(
+                finalize(() => (this.loading = false)),
+                takeUntilDestroyed(this._destroyRef)
+            )
+            .subscribe({
+                next: () => {
+                    this._snackBar.open(
+                        'Refeição aceita com sucesso!',
+                        'Fechar',
+                        {
+                            duration: 3000,
+                            panelClass: ['success-snackbar'],
+                        }
+                    );
+                    this.carregarRefeicoesPendentes();
+                    this.carregarRefeicoes();
+                },
+                error: (error) => {
+                    this._snackBar.open(
+                        'Erro ao aceitar refeição. Tente novamente.',
+                        'Fechar',
+                        {
+                            duration: 5000,
+                            panelClass: ['error-snackbar'],
+                        }
+                    );
+                },
+            });
+    }
+
+    rejeitarRefeicao(refeicaoId: number): void {
+        if (confirm('Tem certeza que deseja rejeitar esta refeição? Ela será excluída permanentemente.')) {
+            this.loading = true;
+            this._refeicoesService
+                .rejeitarRefeicao(refeicaoId)
+                .pipe(
+                    finalize(() => (this.loading = false)),
+                    takeUntilDestroyed(this._destroyRef)
+                )
+                .subscribe({
+                    next: () => {
+                        this._snackBar.open(
+                            'Refeição rejeitada e excluída!',
+                            'Fechar',
+                            {
+                                duration: 3000,
+                                panelClass: ['success-snackbar'],
+                            }
+                        );
+                        this.carregarRefeicoesPendentes();
+                    },
+                    error: (error) => {
+                        this._snackBar.open(
+                            'Erro ao rejeitar refeição. Tente novamente.',
+                            'Fechar',
+                            {
+                                duration: 5000,
+                                panelClass: ['error-snackbar'],
+                            }
+                        );
+                    },
+                });
+        }
     }
 
     carregarRefeicoes(): void {
