@@ -534,7 +534,7 @@ export class AdicionarRefeicaoComponent implements OnInit {
 
         this._httpClient
             .post<RefeicaoResponse>(
-                'http://backend:8080/api/refeicoes/gerar-por-foto',
+                'https://ttfdietbackend.tigasolutions.com.br/api/refeicoes/gerar-por-foto',
                 formData
             )
             .pipe(

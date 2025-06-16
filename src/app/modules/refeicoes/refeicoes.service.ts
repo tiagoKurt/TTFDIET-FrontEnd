@@ -19,14 +19,18 @@ export class RefeicoesService {
 
     private readonly REFEICAO_URL =
         'https://agenteia.tigasolutions.com.br/refeicao';
-    private readonly PLANO_URL = 'http://backend:8080/api/planos/gerar';
+    private readonly PLANO_URL =
+        'https://ttfdietbackend.tigasolutions.com.br/api/planos/gerar';
     private readonly PLANO_SALVAR_URL =
-        'http://backend:8080/api/planos/gerar-e-salvar';
-    private readonly PLANOS_URL = 'http://backend:8080/api/planos';
-    private readonly BACKEND_URL = 'http://backend:8080/api/refeicoes';
-    private readonly ALIMENTOS_URL = 'http://backend:8080/api/alimentos';
+        'https://ttfdietbackend.tigasolutions.com.br/api/planos/gerar-e-salvar';
+    private readonly PLANOS_URL =
+        'https://ttfdietbackend.tigasolutions.com.br/api/planos';
+    private readonly BACKEND_URL =
+        'https://ttfdietbackend.tigasolutions.com.br/api/refeicoes';
+    private readonly ALIMENTOS_URL =
+        'https://ttfdietbackend.tigasolutions.com.br/api/alimentos';
     private readonly MINHAS_REFEICOES_URL =
-        'http://backend:8080/api/minhas-refeicoes';
+        'https://ttfdietbackend.tigasolutions.com.br/api/minhas-refeicoes';
 
     gerarRefeicao(request: RefeicaoRequest): Observable<AlimentoResponse[]> {
         return this._httpClient.post<AlimentoResponse[]>(
