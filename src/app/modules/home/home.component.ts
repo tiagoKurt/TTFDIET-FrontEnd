@@ -11,12 +11,14 @@ import { MatChipsModule } from '@angular/material/chips';
 import { Router } from '@angular/router';
 import { UserService } from 'app/core/user/user.service';
 import { User } from 'app/core/user/user.types';
-import { Subject, takeUntil, combineLatest } from 'rxjs';
+import { Subject, takeUntil, combineLatest, forkJoin } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { ApiService } from 'app/core/services/api.service';
 import { HomeDashboardService, ConsumoCaloricoResponse, EstatisticasSemanais } from './home-dashboard.service';
 import { MetasService } from '../metas/metas.service';
 import { Meta } from '../metas/metas.component';
+import { RefeicoesService } from '../refeicoes/refeicoes.service';
+import { HistoricoInsightsModalComponent } from './historico-insights-modal.component';
 
 interface MetricasSaude {
     imc: number;
@@ -76,10 +78,10 @@ export class HomeComponent implements OnInit, OnDestroy {
     };
     planejamentoSemanal: any;
     insightsPlanejamento: any[] = [];
+    dadosInsights: any = null; // Para armazenar dados do modal
 
     perfilCompleto: boolean = false;
     proximaEtapa: string = '';
-
 
     diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
@@ -90,7 +92,8 @@ export class HomeComponent implements OnInit, OnDestroy {
         private http: HttpClient,
         private apiService: ApiService,
         private _dashboardService: HomeDashboardService,
-        private _metasService: MetasService
+        private _metasService: MetasService,
+        private _refeicoesService: RefeicoesService
     ) {}
 
     ngOnInit(): void {
@@ -112,6 +115,8 @@ export class HomeComponent implements OnInit, OnDestroy {
                     this.avaliarStatusPerfil();
                     this.calcularMetricas();
                     this.carregarDadosDashboard();
+                    this.carregarPlanejamentoSemanal();
+                    this.carregarInsightsReais();
                 },
                 error: (error) => {
                     console.error('Erro ao carregar dados do usuário:', error);
@@ -308,7 +313,34 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
 
     verHistorico(): void {
-        this.router.navigate(['/historico']);
+        if (this.dadosInsights) {
+            this.dialog.open(HistoricoInsightsModalComponent, {
+                width: '800px',
+                maxWidth: '90vw',
+                data: this.dadosInsights
+            });
+        } else {
+            this.dialog.open(HistoricoInsightsModalComponent, {
+                width: '800px',
+                maxWidth: '90vw',
+                data: {
+                    resumoSemanal: {
+                        sequenciaAtual: this.estatisticas?.sequenciaAtual || 0,
+                        totalRefeicoes: this.estatisticas?.totalRefeicoes || 0,
+                        mediaCaloriasDiarias: this.estatisticas?.mediaCaloriasDiarias || 0,
+                        progressoMeta: 0
+                    },
+                    historicoDiario: [],
+                    insightsSemana: [],
+                    tendencias: {
+                        consistenciaRefeicoes: 0,
+                        metaHidratacao: 0,
+                        equilibrioCalorico: 0
+                    },
+                    recomendacoes: []
+                }
+            });
+        }
     }
 
     obterCorProgressoIMC(): string {
@@ -373,7 +405,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
 
     obterDiasComPlanejamento(): number {
-        return this.planejamentoSemanal?.diasComPlano || 0;
+        return this.planejamentoSemanal?.totalDiasComPlano || 0;
     }
 
     obterTotalRefeicoesSemana(): number {
@@ -381,8 +413,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
 
     obterPorcentagemPlanejamento(): number {
-        const diasComPlano = this.planejamentoSemanal?.diasComPlano || 0;
-        return Math.round((diasComPlano / 7) * 100);
+        return this.planejamentoSemanal?.porcentagemPlanejamento || 0;
     }
 
     trackByRecomendacao(index: number, item: RecomendacaoPersonalizada): string {
@@ -438,5 +469,80 @@ export class HomeComponent implements OnInit, OnDestroy {
             'CALORIAS': 'kcal'
         };
         return unidades[tipo] || '';
+    }
+
+    private carregarPlanejamentoSemanal(): void {
+        this._dashboardService.buscarRefeicoesSemanaAtual()
+            .pipe(takeUntil(this._unsubscribeAll))
+            .subscribe({
+                next: (refeicoes) => {
+                    this.planejamentoSemanal = this._dashboardService.processarPlanejamentoSemanal(refeicoes);
+                    this.insightsPlanejamento = this.planejamentoSemanal.insights || [];
+                },
+                error: (error) => {
+                    console.error('Erro ao carregar planejamento semanal:', error);
+                    this.planejamentoSemanal = this.gerarPlanejamentoExemplo();
+                }
+            });
+    }
+
+    private carregarInsightsReais(): void {
+        if (!this.user) return;
+
+        this._dashboardService.buscarRefeicoesSemanaAtual()
+            .pipe(takeUntil(this._unsubscribeAll))
+            .subscribe({
+                next: (refeicoes) => {
+                    this._dashboardService.calcularInsightsReais(refeicoes, this.user)
+                        .subscribe(insights => {
+                            this.dadosInsights = insights;
+                            this.estatisticas = {
+                                diasComRegistro: insights.resumoSemanal.sequenciaAtual,
+                                totalRefeicoes: insights.resumoSemanal.totalRefeicoes,
+                                mediaCaloriasDiarias: insights.resumoSemanal.mediaCaloriasDiarias,
+                                sequenciaAtual: insights.resumoSemanal.sequenciaAtual
+                            };
+                        });
+                },
+                error: (error) => {
+                    console.error('Erro ao carregar insights:', error);
+                }
+            });
+    }
+
+    private gerarPlanejamentoExemplo(): any {
+        const hoje = new Date();
+        const semana = [];
+
+        for (let i = 0; i < 7; i++) {
+            const data = new Date(hoje);
+            data.setDate(hoje.getDate() + i);
+
+            semana.push({
+                data: data.toISOString().split('T')[0],
+                diaSemana: this.diasSemana[data.getDay()],
+                diaNumero: data.getDate(),
+                isHoje: i === 0,
+                isPast: false,
+                temPlano: Math.random() > 0.4,
+                quantidadeRefeicoes: Math.floor(Math.random() * 4) + 1,
+                totalCalorias: Math.floor(Math.random() * 1000) + 1500
+            });
+        }
+
+        const totalDiasComPlano = semana.filter(d => d.temPlano).length;
+        const totalRefeicoes = semana.reduce((total, d) => total + d.quantidadeRefeicoes, 0);
+
+        return {
+            semana,
+            totalDiasComPlano,
+            totalRefeicoes,
+            porcentagemPlanejamento: (totalDiasComPlano / 7) * 100,
+            insights: []
+        };
+    }
+
+    formatarDiaComData(data: string, diaSemana: string, diaNumero: number): string {
+        return `${diaSemana} - ${diaNumero}`;
     }
 }

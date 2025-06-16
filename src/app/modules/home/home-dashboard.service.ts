@@ -202,50 +202,76 @@ export class HomeDashboardService {
     }
 
     obterPlanejamentoSemanal(): Observable<any> {
-        return this._apiService.get<any[]>('/api/refeicoes/')
+        return this._apiService.get<any[]>('/api/refeicoes/semana-atual')
             .pipe(
                 map(refeicoes => this.processarPlanejamentoSemanal(refeicoes)),
                 catchError(error => {
-                    console.log('API não disponível, usando dados de exemplo para planejamento');
+                    console.log('Planejamento semanal não disponível, gerando exemplo');
                     return of(this.gerarPlanejamentoExemplo());
                 })
             );
     }
 
-    private processarPlanejamentoSemanal(refeicoes: any[]): any {
+    buscarRefeicoesPorPeriodo(dataInicio: string, dataFim: string): Observable<any[]> {
+        return this._httpClient.get<any[]>('/api/refeicoes/por-periodo', {
+            params: {
+                dataInicio,
+                dataFim
+            }
+        }).pipe(
+            catchError(error => {
+                console.log('Erro ao buscar refeições por período:', error);
+                return of([]);
+            })
+        );
+    }
+
+    buscarRefeicoesSemanaAtual(): Observable<any[]> {
+        return this._httpClient.get<any[]>('/api/refeicoes/semana-atual-real')
+            .pipe(
+                catchError(error => {
+                    console.log('Erro ao buscar refeições da semana atual:', error);
+                    return of([]);
+                })
+            );
+    }
+
+    processarPlanejamentoSemanal(refeicoes: any[]): any {
         const hoje = new Date();
-        const inicioSemana = new Date(hoje);
-        inicioSemana.setDate(hoje.getDate() - hoje.getDay());
+        const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
-        const diasSemana = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+        const semana = [];
+        for (let i = 0; i < 7; i++) {
+            const data = new Date(hoje);
+            data.setDate(hoje.getDate() + i);
 
-        const planejamentoSemanal = diasSemana.map((dia, index) => {
-            const dataDay = new Date(inicioSemana);
-            dataDay.setDate(inicioSemana.getDate() + index);
+            const dataStr = data.toISOString().split('T')[0];
+            const refeicoesDia = refeicoes.filter(r =>
+                r.dataHora && r.dataHora.startsWith(dataStr)
+            );
 
-            const dataFormatada = dataDay.toISOString().split('T')[0];
-
-            const refeicoesDia = refeicoes.filter(refeicao => {
-                const dataRefeicao = new Date(refeicao.dataHoraRefeicao);
-                const dataRefeicaoFormatada = dataRefeicao.toISOString().split('T')[0];
-                return dataRefeicaoFormatada === dataFormatada;
-            });
-
-            return {
-                dia,
-                data: dataDay,
+            semana.push({
+                data: dataStr,
+                diaSemana: diasSemana[data.getDay()],
+                diaNumero: data.getDate(),
+                isHoje: i === 0,
+                isPast: false,
                 temPlano: refeicoesDia.length > 0,
                 quantidadeRefeicoes: refeicoesDia.length,
                 refeicoes: refeicoesDia,
-                isHoje: dataFormatada === hoje.toISOString().split('T')[0],
-                isPast: dataDay < hoje
-            };
-        });
+                totalCalorias: refeicoesDia.reduce((total, r) => total + (r.totalCalorias || 0), 0)
+            });
+        }
+
+        const totalDiasComPlano = semana.filter(d => d.temPlano).length;
+        const totalRefeicoes = semana.reduce((total, d) => total + d.quantidadeRefeicoes, 0);
 
         return {
-            semana: planejamentoSemanal,
-            totalRefeicoes: refeicoes.length,
-            diasComPlano: planejamentoSemanal.filter(d => d.temPlano).length
+            semana,
+            totalDiasComPlano,
+            totalRefeicoes,
+            porcentagemPlanejamento: (totalDiasComPlano / 7) * 100,
+            insights: this.gerarInsightsPlanejamento({ semana, totalDiasComPlano, totalRefeicoes })
         };
     }
 
@@ -407,5 +433,185 @@ export class HomeDashboardService {
         }
 
         return insights;
+    }
+
+    calcularInsightsReais(refeicoes: any[], user: any): Observable<any> {
+        const hoje = new Date();
+        const seteDiasAtras = new Date(hoje);
+        seteDiasAtras.setDate(hoje.getDate() - 7);
+
+        const refeicoesSemana = refeicoes.filter(r => {
+            const dataRefeicao = new Date(r.dataHora);
+            return dataRefeicao >= seteDiasAtras && dataRefeicao <= hoje;
+        });
+
+        const diasComRefeicao = new Set(
+            refeicoesSemana.map(r => r.dataHora.split('T')[0])
+        ).size;
+
+        const totalCalorias = refeicoesSemana.reduce((total, r) => total + (r.totalCalorias || 0), 0);
+        const mediaCaloriasDiarias = diasComRefeicao > 0 ? Math.round(totalCalorias / diasComRefeicao) : 0;
+
+        const sequenciaAtual = this.calcularSequenciaConsecutiva(refeicoesSemana);
+
+        const historicoDiario = this.gerarHistoricoDiario(refeicoesSemana, user);
+
+        const insightsSemana = this.gerarInsightsSemana(refeicoesSemana, user);
+
+        const tendencias = this.calcularTendencias(refeicoesSemana, user);
+
+        const recomendacoes = this.gerarRecomendacoesPersonalizadas(refeicoesSemana, user);
+
+        return of({
+            resumoSemanal: {
+                sequenciaAtual,
+                totalRefeicoes: refeicoesSemana.length,
+                mediaCaloriasDiarias,
+                progressoMeta: this.calcularProgressoMeta(refeicoesSemana, user)
+            },
+            historicoDiario,
+            insightsSemana,
+            tendencias,
+            recomendacoes
+        });
+    }
+
+    private gerarHistoricoDiario(refeicoes: any[], user: any): any[] {
+        const historico = [];
+        const hoje = new Date();
+
+        for (let i = 6; i >= 0; i--) {
+            const data = new Date(hoje);
+            data.setDate(hoje.getDate() - i);
+            const dataStr = data.toISOString().split('T')[0];
+
+            const refeicoesDia = refeicoes.filter(r =>
+                r.dataHora && r.dataHora.startsWith(dataStr)
+            );
+
+            const caloriasConsumidas = refeicoesDia.reduce((total, r) => total + (r.totalCalorias || 0), 0);
+            const caloriasMeta = this.calcularGastoCaloricoTotal(user);
+            const aguaMeta = (user.peso || 70) * 35;
+
+            historico.push({
+                data: dataStr,
+                refeicoesDia: refeicoesDia.length,
+                caloriasConsumidas,
+                caloriasMeta,
+                aguaConsumida: 0,
+                aguaMeta,
+                pesoAtual: user.peso,
+                observacoes: this.gerarObservacaoDia(refeicoesDia, caloriasConsumidas, caloriasMeta)
+            });
+        }
+
+        return historico;
+    }
+
+    private gerarObservacaoDia(refeicoes: any[], calorias: number, meta: number): string {
+        if (refeicoes.length === 0) {
+            return 'Nenhuma refeição registrada';
+        }
+
+        const percentual = (calorias / meta) * 100;
+
+        if (percentual < 70) {
+            return 'Consumo calórico abaixo do recomendado';
+        } else if (percentual > 110) {
+            return 'Consumo calórico acima da meta';
+        } else {
+            return 'Dia equilibrado nutricionalmente';
+        }
+    }
+
+    private gerarInsightsSemana(refeicoes: any[], user: any): any[] {
+        const insights = [];
+        const diasComRefeicao = new Set(refeicoes.map(r => r.dataHora.split('T')[0])).size;
+
+        if (diasComRefeicao >= 6) {
+            insights.push({
+                tipo: 'sucesso',
+                icone: 'check_circle',
+                titulo: 'Excelente consistência!',
+                descricao: `Você registrou refeições em ${diasComRefeicao} dos últimos 7 dias.`
+            });
+        } else if (diasComRefeicao >= 4) {
+            insights.push({
+                tipo: 'atencao',
+                icone: 'trending_up',
+                titulo: 'Boa consistência',
+                descricao: `${diasComRefeicao} dias com registros. Tente manter a regularidade.`
+            });
+        } else {
+            insights.push({
+                tipo: 'alerta',
+                icone: 'warning',
+                titulo: 'Melhore a consistência',
+                descricao: `Apenas ${diasComRefeicao} dias com registros. Registre suas refeições diariamente.`
+            });
+        }
+
+        const tiposRefeicao = new Set(refeicoes.map(r => r.tipoRefeicao)).size;
+        if (tiposRefeicao >= 4) {
+            insights.push({
+                tipo: 'sucesso',
+                icone: 'restaurant_menu',
+                titulo: 'Boa variedade alimentar',
+                descricao: `${tiposRefeicao} tipos diferentes de refeições registradas.`
+            });
+        }
+
+        return insights;
+    }
+
+    private calcularTendencias(refeicoes: any[], user: any): any {
+        const diasComRefeicao = new Set(refeicoes.map(r => r.dataHora.split('T')[0])).size;
+        const consistenciaRefeicoes = Math.round((diasComRefeicao / 7) * 100);
+
+        const totalCalorias = refeicoes.reduce((total, r) => total + (r.totalCalorias || 0), 0);
+        const metaCalorias = this.calcularGastoCaloricoTotal(user) * 7;
+        const equilibrioCalorico = Math.min(100, Math.round((totalCalorias / metaCalorias) * 100));
+
+        return {
+            consistenciaRefeicoes,
+            metaHidratacao: 65,
+            equilibrioCalorico
+        };
+    }
+
+    private gerarRecomendacoesPersonalizadas(refeicoes: any[], user: any): any[] {
+        const recomendacoes = [];
+        const diasComRefeicao = new Set(refeicoes.map(r => r.dataHora.split('T')[0])).size;
+
+        if (diasComRefeicao < 5) {
+            recomendacoes.push({
+                prioridade: 'alta',
+                icone: 'schedule',
+                corIcone: 'text-red-600',
+                titulo: 'Estabeleça uma rotina',
+                descricao: 'Registre suas refeições diariamente para melhor controle nutricional.'
+            });
+        }
+
+        const totalCalorias = refeicoes.reduce((total, r) => total + (r.totalCalorias || 0), 0);
+        const metaSemanal = this.calcularGastoCaloricoTotal(user) * 7;
+
+        if (totalCalorias < metaSemanal * 0.8) {
+            recomendacoes.push({
+                prioridade: 'media',
+                icone: 'restaurant',
+                corIcone: 'text-orange-600',
+                titulo: 'Aumente o consumo calórico',
+                descricao: 'Suas calorias estão abaixo do recomendado para seus objetivos.'
+            });
+        }
+
+        return recomendacoes;
+    }
+
+    private calcularProgressoMeta(refeicoes: any[], user: any): number {
+        const totalCalorias = refeicoes.reduce((total, r) => total + (r.totalCalorias || 0), 0);
+        const metaSemanal = this.calcularGastoCaloricoTotal(user) * 7;
+        return Math.min(100, Math.round((totalCalorias / metaSemanal) * 100));
     }
 }

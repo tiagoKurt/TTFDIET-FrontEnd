@@ -395,20 +395,21 @@
                         </div>
                     </div>
 
-                    <!-- Visualização da semana -->
-                    <div class="grid grid-cols-7 gap-2 text-center mb-4">
-                        <div *ngFor="let dia of diasSemana; let i = index" class="text-xs font-medium text-gray-600 py-1">
-                            {{ dia }}
+                    <!-- Visualização da semana com dias e datas -->
+                    <div class="grid grid-cols-7 gap-2 text-center mb-4" *ngIf="planejamentoSemanal?.semana">
+                        <div *ngFor="let dia of planejamentoSemanal.semana" class="text-xs font-medium text-gray-600 py-1">
+                            {{ dia.diaSemana }} - {{ dia.diaNumero }}
                         </div>
                     </div>
 
                     <!-- Status dos dias -->
                     <div class="grid grid-cols-7 gap-2 mb-4" *ngIf="planejamentoSemanal?.semana">
                         <div *ngFor="let dia of planejamentoSemanal.semana"
-                             class="relative h-8 rounded-lg flex items-center justify-center text-xs font-medium"
+                             class="relative h-10 rounded-lg flex flex-col items-center justify-center text-xs font-medium"
                              [class]="dia.temPlano ? (dia.isHoje ? 'bg-blue-500 text-white' : 'bg-green-100 text-green-800') :
                                      (dia.isPast ? 'bg-gray-100 text-gray-400' : 'bg-orange-100 text-orange-600')">
-                            <span *ngIf="dia.temPlano">{{ dia.quantidadeRefeicoes }}</span>
+                            <span *ngIf="dia.temPlano" class="font-bold">{{ dia.quantidadeRefeicoes }}</span>
+                            <span *ngIf="dia.temPlano" class="text-xs opacity-75">ref</span>
                             <span *ngIf="!dia.temPlano && !dia.isPast">-</span>
                             <span *ngIf="!dia.temPlano && dia.isPast">✗</span>
 
