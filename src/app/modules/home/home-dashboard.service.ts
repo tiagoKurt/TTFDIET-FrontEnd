@@ -1,8 +1,8 @@
-import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
 import { ApiService } from 'app/core/services/api.service';
-import { Observable, BehaviorSubject, of } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
+import { BehaviorSubject, Observable, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 
 export interface ConsumoCaloricoResponse {
     caloriasConsumidas: number;
@@ -118,7 +118,7 @@ export class HomeDashboardService {
     }
 
     carregarRefeicoesPendentes(): Observable<number> {
-        return this._httpClient.get<{totalPendentes: number}>('http://localhost:8080/api/refeicoes/contar-pendentes')
+        return this._httpClient.get<{totalPendentes: number}>('https://ttfdietbackend.tigasolutions.com.br/api/refeicoes/contar-pendentes')
             .pipe(
                 map(response => response.totalPendentes),
                 catchError(error => {
@@ -290,7 +290,7 @@ export class HomeDashboardService {
     }
 
     buscarRefeicoesPorPeriodo(dataInicio: string, dataFim: string): Observable<any[]> {
-        return this._httpClient.get<any[]>(`http://localhost:8080/api/refeicoes/periodo?dataInicio=${dataInicio}&dataFim=${dataFim}`)
+        return this._httpClient.get<any[]>(`https://ttfdietbackend.tigasolutions.com.br/api/refeicoes/periodo?dataInicio=${dataInicio}&dataFim=${dataFim}`)
             .pipe(
                 catchError(error => {
                     return of([]);

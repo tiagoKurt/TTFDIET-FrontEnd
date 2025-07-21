@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import {
     AlimentoListItem,
     AlimentoResponse,
@@ -9,11 +10,10 @@ import {
     PlanoAlimentarResponse,
     RefeicaoRequest,
     RefeicaoResponse,
-    StatusRefeicaoDTO,
     StatusRefeicao,
+    StatusRefeicaoDTO,
     VerificarPendenteResponse,
 } from './refeicoes.types';
-import { map } from 'rxjs/operators';
 
 @Injectable({
     providedIn: 'root',
@@ -22,12 +22,12 @@ export class RefeicoesService {
     private _httpClient = inject(HttpClient);
 
     private readonly REFEICAO_URL = 'https://agenteia.tigasolutions.com.br/refeicao';
-    private readonly PLANO_URL = 'http://localhost:8080/api/planos/gerar';
-    private readonly PLANO_SALVAR_URL = 'http://localhost:8080/api/planos/gerar-e-salvar';
-    private readonly PLANOS_URL = 'http://localhost:8080/api/planos';
-    private readonly BACKEND_URL = 'http://localhost:8080/api/refeicoes';
-    private readonly ALIMENTOS_URL = 'http://localhost:8080/api/alimentos';
-    private readonly MINHAS_REFEICOES_URL = 'http://localhost:8080/api/minhas-refeicoes';
+    private readonly PLANO_URL = 'https://ttfdietbackend.tigasolutions.com.br/api/planos/gerar';
+    private readonly PLANO_SALVAR_URL = 'https://ttfdietbackend.tigasolutions.com.br/api/planos/gerar-e-salvar';
+    private readonly PLANOS_URL = 'https://ttfdietbackend.tigasolutions.com.br/api/planos';
+    private readonly BACKEND_URL = 'https://ttfdietbackend.tigasolutions.com.br/api/refeicoes';
+    private readonly ALIMENTOS_URL = 'https://ttfdietbackend.tigasolutions.com.br/api/alimentos';
+    private readonly MINHAS_REFEICOES_URL = 'https://ttfdietbackend.tigasolutions.com.br/api/minhas-refeicoes';
 
     gerarRefeicao(request: RefeicaoRequest): Observable<AlimentoResponse[]> {
         return this._httpClient.post<AlimentoResponse[]>(
