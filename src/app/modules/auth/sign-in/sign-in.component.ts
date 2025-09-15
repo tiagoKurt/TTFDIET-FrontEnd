@@ -1,3 +1,4 @@
+import { CommonModule } from '@angular/common';
 import { Component, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
 import {
     FormsModule,
@@ -18,7 +19,6 @@ import { fuseAnimations } from '@fuse/animations';
 import { FuseAlertComponent, FuseAlertType } from '@fuse/components/alert';
 import { AuthService } from 'app/core/auth/auth.service';
 import { NotificationService } from 'app/core/services/notification.service';
-import { CommonModule } from '@angular/common';
 
 @Component({
     selector: 'auth-sign-in',
@@ -39,21 +39,23 @@ import { CommonModule } from '@angular/common';
         MatCheckboxModule,
         MatProgressSpinnerModule,
     ],
-    styles: [`
-        auth-sign-in {
-            display: block;
-            height: 100vh;
-            width: 100vw;
-            overflow: hidden;
-        }
+    styles: [
+        `
+            auth-sign-in {
+                display: block;
+                height: 100vh;
+                width: 100vw;
+                overflow: hidden;
+            }
 
-        .auth-container {
-            height: 100vh;
-            width: 100vw;
-            max-height: 100vh;
-            max-width: 100vw;
-        }
-    `]
+            .auth-container {
+                height: 100vh;
+                width: 100vw;
+                max-height: 100vh;
+                max-width: 100vw;
+            }
+        `,
+    ],
 })
 export class AuthSignInComponent implements OnInit {
     @ViewChild('signInNgForm') signInNgForm: NgForm;
@@ -107,6 +109,9 @@ export class AuthSignInComponent implements OnInit {
     /**
      * Sign in
      */
+    signInGoogle(): void {
+        return this._authService.signInGoogle();
+    }
     signIn(): void {
         // Mark all fields as touched to show validation errors
         this.signInForm.markAllAsTouched();
@@ -201,7 +206,10 @@ export class AuthSignInComponent implements OnInit {
         } else if (error.status === 0) {
             return 'Erro de conexão. Verifique sua internet e tente novamente.';
         } else {
-            return error.error?.message || 'Erro inesperado. Tente novamente em alguns minutos.';
+            return (
+                error.error?.message ||
+                'Erro inesperado. Tente novamente em alguns minutos.'
+            );
         }
     }
 
@@ -215,11 +223,15 @@ export class AuthSignInComponent implements OnInit {
         if (emailControl?.hasError('required')) {
             this._notificationService.error('Email é obrigatório');
         } else if (emailControl?.hasError('email')) {
-            this._notificationService.error('Por favor, insira um email válido');
+            this._notificationService.error(
+                'Por favor, insira um email válido'
+            );
         } else if (senhaControl?.hasError('required')) {
             this._notificationService.error('Senha é obrigatória');
         } else if (senhaControl?.hasError('minlength')) {
-            this._notificationService.error('Senha deve ter pelo menos 6 caracteres');
+            this._notificationService.error(
+                'Senha deve ter pelo menos 6 caracteres'
+            );
         }
     }
 

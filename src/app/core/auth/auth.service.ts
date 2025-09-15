@@ -118,6 +118,9 @@ export class AuthService {
      *
      * @param credentials
      */
+    signInGoogle(): void {
+        console.log('Logando com google ');
+    }
     signIn(credentials: SignInRequest): Observable<SignInResponse> {
         // Throw error, if the user is already logged in
         if (this._authenticated) {
