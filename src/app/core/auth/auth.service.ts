@@ -13,6 +13,7 @@ import {
 import Cookies from 'js-cookie';
 import {
     catchError,
+    map,
     Observable,
     of,
     switchMap,
@@ -119,7 +120,8 @@ export class AuthService {
      * @param credentials
      */
     signInGoogle(): void {
-        console.log('Logando com google ');
+        window.location.href =
+            'http://localhost:8080/oauth2/authorization/google';
     }
     signIn(credentials: SignInRequest): Observable<SignInResponse> {
         // Throw error, if the user is already logged in
@@ -132,7 +134,7 @@ export class AuthService {
                 // Store the access token in the local storage
                 this.accessToken = response.token;
                 this.sessionToken = response.sessionToken;
-
+                console.log(response.token, response.sessionToken);
                 // Set the authenticated flag to true
                 this._authenticated = true;
             }),
@@ -155,16 +157,28 @@ export class AuthService {
      * Sign in using the access token
      */
     signInUsingToken(): Observable<any> {
+        console.log('signInUsingToken() chamado');
+
         if (!this.accessToken || AuthUtils.isTokenExpired(this.accessToken)) {
+            console.log('Token inválido ou expirado');
             return of(false);
         }
 
         this._authenticated = true;
+        console.log('Marcado como autenticado, carregando perfil...');
 
         return this._userService.getProfile().pipe(
             take(1),
+            tap((user: User) => {
+                console.log('Perfil carregado:', user);
+                if (user) {
+                    this._loginRealizado = true;
+                    console.log('Login realizado com sucesso');
+                }
+            }),
             switchMap((user: User) => {
                 if (!user) {
+                    console.log('Usuário não encontrado, limpando tokens');
                     this._authenticated = false;
                     this.deleteTokens();
                     return of(false);
@@ -227,32 +241,49 @@ export class AuthService {
      * Check the authentication status
      */
     check(): Observable<boolean> {
-        // Check if the user is logged in
-        if (this._authenticated) {
-            if (this._loginRealizado) {
-                if (this.accessToken && this.sessionToken) {
-                    this._apiService
-                        .post('/auth/verifySession', {
-                            sessionToken: this.sessionToken,
-                            accessToken: this.accessToken,
-                        })
-                        .subscribe((response: any) => {
-                            console.log(response);
-                            if (response.logado !== true) {
-                                this.deleteTokens();
-                            }
-                            this._authenticated = response.logado;
-                        });
-                }
-            }
-        }
-        // Check the access token expire date
-        if (AuthUtils.isTokenExpired(this.accessToken)) {
-            localStorage.removeItem('accessToken');
+        console.log('AuthService.check() called');
+
+        // Se não há tokens, retorna false
+        if (!this.accessToken || !this.sessionToken) {
+            console.log('Tokens não encontrados');
             return of(false);
         }
 
-        // If the access token exists, and it didn't expire, sign in using it
+        // Verifica se o token expirou
+        if (AuthUtils.isTokenExpired(this.accessToken)) {
+            console.log('Token expirado');
+            this.deleteTokens();
+            return of(false);
+        }
+
+        // Se já está autenticado e o login foi realizado, verifica a sessão
+        if (this._authenticated && this._loginRealizado) {
+            console.log('Verificando sessão existente...');
+            return this._apiService
+                .post('/auth/verifySession', {
+                    sessionToken: this.sessionToken,
+                    accessToken: this.accessToken,
+                })
+                .pipe(
+                    tap((response: any) => {
+                        console.log('Verificação de sessão:', response);
+                        if (response.logado !== true) {
+                            this.deleteTokens();
+                            this._authenticated = false;
+                        }
+                    }),
+                    map((response: any) => response.logado === true),
+                    catchError((error) => {
+                        console.error('Erro na verificação de sessão:', error);
+                        this.deleteTokens();
+                        this._authenticated = false;
+                        return of(false);
+                    })
+                );
+        }
+
+        // Se tem token válido mas não está autenticado, tenta autenticar
+        console.log('Tentando autenticar com token...');
         return this.signInUsingToken();
     }
 }
