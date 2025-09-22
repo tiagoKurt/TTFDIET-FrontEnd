@@ -121,7 +121,7 @@ export class AuthService {
      */
     signInGoogle(): void {
         window.location.href =
-            'http://localhost:8080/oauth2/authorization/google';
+            'https://ttfdietbackend.tigasolutions.com.br/oauth2/authorization/google';
     }
     signIn(credentials: SignInRequest): Observable<SignInResponse> {
         // Throw error, if the user is already logged in
