@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
@@ -125,6 +125,88 @@ export class AdicionarRefeicaoComponent implements OnInit {
 
     trackByIndex(index: number, item: any): number {
         return index;
+    }
+
+    testarConectividade(): void {
+        this.addDebugLog('🌐 Testando conectividade com o backend...');
+
+        // Teste simples de conectividade
+        this._httpClient
+            .get('https://ttfdietbackend.tigasolutions.com.br/api/health', {
+                headers: { Accept: 'application/json' },
+            })
+            .subscribe({
+                next: (response) => {
+                    this.addDebugLog('✅ Backend acessível via GET');
+                    this.addDebugLog(
+                        `📊 Resposta health check: ${JSON.stringify(response)}`
+                    );
+                },
+                error: (error) => {
+                    this.addDebugLog('❌ Erro no health check:');
+                    this.addDebugLog(
+                        `  • Status: ${error.status || 'sem status'}`
+                    );
+                    this.addDebugLog(
+                        `  • Mensagem: ${error.message || 'sem mensagem'}`
+                    );
+                    this.addDebugLog(
+                        `  • CORS Headers: ${error.headers ? 'presentes' : 'ausentes'}`
+                    );
+                },
+            });
+
+        // Teste específico para OPTIONS (preflight)
+        this._httpClient
+            .request(
+                'OPTIONS',
+                'https://ttfdietbackend.tigasolutions.com.br/api/refeicoes/gerar-por-foto'
+            )
+            .subscribe({
+                next: (response) => {
+                    this.addDebugLog('✅ OPTIONS (preflight) bem-sucedido');
+                },
+                error: (error) => {
+                    this.addDebugLog('❌ Falha no OPTIONS (preflight):');
+                    this.addDebugLog(`  • Status: ${error.status}`);
+                    this.addDebugLog('  ⚠️ Possível problema de CORS');
+                },
+            });
+    }
+
+    tentarEnvioSimples(): void {
+        if (!this.selectedImage) {
+            this.addDebugLog('❌ Nenhuma imagem para teste simples');
+            return;
+        }
+
+        this.addDebugLog(
+            '🔄 Tentativa de envio SIMPLES (sem headers extras)...'
+        );
+
+        const formData = new FormData();
+        formData.append('imagem', this.selectedImage);
+
+        this._httpClient
+            .post<RefeicaoResponse>(
+                'https://ttfdietbackend.tigasolutions.com.br/api/refeicoes/gerar-por-foto',
+                formData
+            )
+            .subscribe({
+                next: (response) => {
+                    this.addDebugLog('✅ ENVIO SIMPLES funcionou!');
+                    this.resultado = response;
+                },
+                error: (error) => {
+                    this.addDebugLog('❌ ENVIO SIMPLES também falhou:');
+                    this.addDebugLog(
+                        `  • Status: ${error.status || 'sem status'}`
+                    );
+                    this.addDebugLog(
+                        `  • Mensagem: ${error.message || 'sem mensagem'}`
+                    );
+                },
+            });
     }
 
     ngOnInit(): void {
@@ -525,10 +607,28 @@ export class AdicionarRefeicaoComponent implements OnInit {
 
         this.addDebugLog('📡 Iniciando requisição HTTP POST');
 
+        // Headers específicos para mobile
+        const headers = new HttpHeaders({
+            Accept: 'application/json',
+            'Cache-Control': 'no-cache',
+            'X-Requested-With': 'XMLHttpRequest',
+        });
+
+        const options = {
+            headers: headers,
+            reportProgress: true,
+            observe: 'response' as const,
+        };
+
+        this.addDebugLog(
+            `🔧 Headers definidos: Accept, Cache-Control, X-Requested-With`
+        );
+
         this._httpClient
             .post<RefeicaoResponse>(
                 'https://ttfdietbackend.tigasolutions.com.br/api/refeicoes/gerar-por-foto',
-                formData
+                formData,
+                options
             )
             .pipe(
                 finalize(() => {
@@ -540,9 +640,15 @@ export class AdicionarRefeicaoComponent implements OnInit {
                 takeUntilDestroyed(this._destroyRef)
             )
             .subscribe({
-                next: (response) => {
+                next: (httpResponse) => {
                     this.addDebugLog('✅ Resposta recebida com sucesso');
-                    this.addDebugLog(`📊 Tipo da resposta: ${typeof response}`);
+                    this.addDebugLog(`📊 Status HTTP: ${httpResponse.status}`);
+                    this.addDebugLog(
+                        `🔍 Headers: ${Object.keys(httpResponse.headers.keys()).length} headers`
+                    );
+
+                    const response = httpResponse.body!;
+                    this.addDebugLog(`📊 Tipo do body: ${typeof response}`);
                     this.addDebugLog(
                         `🔍 Status da resposta: ${response?.status || 'undefined'}`
                     );
@@ -583,6 +689,46 @@ export class AdicionarRefeicaoComponent implements OnInit {
                         `🔢 Erro status: ${error?.status || 'sem status'}`
                     );
                     this.addDebugLog(`📄 Erro URL: ${error?.url || 'sem URL'}`);
+
+                    // Diagnóstico específico para status 0
+                    if (error?.status === 0) {
+                        this.addDebugLog(
+                            '🔍 DIAGNÓSTICO - Status 0 detectado:'
+                        );
+                        this.addDebugLog('  • Possível problema de CORS');
+                        this.addDebugLog(
+                            '  • Conexão bloqueada pelo navegador'
+                        );
+                        this.addDebugLog('  • Backend pode estar offline');
+                        this.addDebugLog('  • Certificado SSL inválido');
+                        this.addDebugLog('  • Rede mobile com restrições');
+
+                        // Verificar se é mobile
+                        const isMobile =
+                            /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+                                navigator.userAgent
+                            );
+                        this.addDebugLog(
+                            `📱 Dispositivo móvel: ${isMobile ? 'SIM' : 'NÃO'}`
+                        );
+
+                        // Verificar se é HTTPS
+                        const isHTTPS = window.location.protocol === 'https:';
+                        this.addDebugLog(
+                            `🔒 Protocolo HTTPS: ${isHTTPS ? 'SIM' : 'NÃO'}`
+                        );
+
+                        // Verificar conexão
+                        const isOnline = navigator.onLine;
+                        this.addDebugLog(
+                            `🌐 Navigator online: ${isOnline ? 'SIM' : 'NÃO'}`
+                        );
+
+                        this.addDebugLog(
+                            '🔧 Executando teste de conectividade...'
+                        );
+                        this.testarConectividade();
+                    }
 
                     if (error?.error) {
                         this.addDebugLog(

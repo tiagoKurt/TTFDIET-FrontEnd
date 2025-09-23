@@ -40,6 +40,36 @@
         <p class="text-gray-600 dark:text-gray-400 mt-2">
             Gere sugestões personalizadas de refeições baseadas em suas preferências ou por imagem
         </p>
+        
+        <!-- Botões de Debug para Mobile -->
+        <div class="mt-4 space-x-2" *ngIf="debugLogs.length === 0">
+            <button mat-stroked-button 
+                    color="primary" 
+                    (click)="addDebugLog('🔧 Debug ativado manualmente')"
+                    class="text-sm">
+                <mat-icon>bug_report</mat-icon>
+                Ativar Debug Mobile
+            </button>
+        </div>
+        
+        <div class="mt-4 space-x-2" *ngIf="debugLogs.length > 0">
+            <button mat-stroked-button 
+                    color="accent" 
+                    (click)="testarConectividade()"
+                    class="text-sm">
+                <mat-icon>network_check</mat-icon>
+                Testar Backend
+            </button>
+            
+            <button mat-stroked-button 
+                    color="warn" 
+                    (click)="tentarEnvioSimples()"
+                    [disabled]="!selectedImage"
+                    class="text-sm">
+                <mat-icon>send</mat-icon>
+                Envio Simples
+            </button>
+        </div>
     </div>
 
     <mat-card *ngIf="temRefeicaoPendente && !resultado" class="p-4 bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-700">
