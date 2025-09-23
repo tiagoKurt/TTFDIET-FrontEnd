@@ -86,6 +86,10 @@ export class AdicionarRefeicaoComponent implements OnInit {
     imagePreview: string | null = null;
     isDragOver = false;
 
+    // Debug visual properties
+    debugLogs: string[] = [];
+    showDebugLogs = true;
+
     tiposRefeicao: TipoRefeicao[] = [
         'Café da manhã',
         'Almoço',
@@ -102,7 +106,36 @@ export class AdicionarRefeicaoComponent implements OnInit {
 
     preferenciasPadrao: string[] = [];
 
+    private addDebugLog(message: string): void {
+        const timestamp = new Date().toLocaleTimeString();
+        this.debugLogs.push(`[${timestamp}] ${message}`);
+
+        // Manter apenas os últimos 15 logs para não sobrecarregar
+        if (this.debugLogs.length > 15) {
+            this.debugLogs = this.debugLogs.slice(-15);
+        }
+
+        console.log(message);
+    }
+
+    clearDebugLogs(): void {
+        this.debugLogs = [];
+        this.addDebugLog('🗑️ Logs limpos');
+    }
+
+    trackByIndex(index: number, item: any): number {
+        return index;
+    }
+
     ngOnInit(): void {
+        // Inicializar debug com informações do dispositivo
+        this.addDebugLog('🚀 Componente inicializado');
+        this.addDebugLog(`📱 User Agent: ${navigator.userAgent}`);
+        this.addDebugLog(`🌐 Plataforma: ${navigator.platform}`);
+        this.addDebugLog(`📺 Tela: ${screen.width}x${screen.height}`);
+        this.addDebugLog(`🔗 URL atual: ${window.location.href}`);
+        this.addDebugLog(`🕒 Timestamp: ${new Date().toISOString()}`);
+
         this.initializeForm();
         this.loadUserProfile();
         this.setupFormWatchers();
@@ -454,15 +487,33 @@ export class AdicionarRefeicaoComponent implements OnInit {
     }
 
     analisarImagem(): void {
+        this.addDebugLog('🚀 analisarImagem iniciado');
+
         if (!this.selectedImage) {
+            this.addDebugLog('❌ Nenhuma imagem selecionada');
             return;
         }
+
+        this.addDebugLog(`📄 Arquivo para envio:`);
+        this.addDebugLog(`  • Nome: ${this.selectedImage.name}`);
+        this.addDebugLog(`  • Tamanho: ${this.selectedImage.size} bytes`);
+        this.addDebugLog(`  • Tipo: ${this.selectedImage.type}`);
 
         this.loading = true;
         this.resultado = null;
 
         const formData = new FormData();
         formData.append('imagem', this.selectedImage);
+
+        this.addDebugLog('📦 FormData criado');
+        this.addDebugLog(
+            `🌍 URL da API: https://ttfdietbackend.tigasolutions.com.br/api/refeicoes/gerar-por-foto`
+        );
+
+        // Verificar se FormData foi criado corretamente
+        const hasImage = formData.has('imagem');
+        this.addDebugLog(`✅ FormData tem 'imagem': ${hasImage}`);
+
         this._snackBar.open(
             `Enviando imagem: ${this.selectedImage.name} (${(this.selectedImage.size / 1024 / 1024).toFixed(2)} MB)`,
             'Fechar',
@@ -471,23 +522,45 @@ export class AdicionarRefeicaoComponent implements OnInit {
                 panelClass: ['info-snackbar'],
             }
         );
+
+        this.addDebugLog('📡 Iniciando requisição HTTP POST');
+
         this._httpClient
             .post<RefeicaoResponse>(
                 'https://ttfdietbackend.tigasolutions.com.br/api/refeicoes/gerar-por-foto',
                 formData
             )
             .pipe(
-                finalize(() => (this.loading = false)),
+                finalize(() => {
+                    this.loading = false;
+                    this.addDebugLog(
+                        '🏁 Requisição finalizada (loading = false)'
+                    );
+                }),
                 takeUntilDestroyed(this._destroyRef)
             )
             .subscribe({
                 next: (response) => {
+                    this.addDebugLog('✅ Resposta recebida com sucesso');
+                    this.addDebugLog(`📊 Tipo da resposta: ${typeof response}`);
+                    this.addDebugLog(
+                        `🔍 Status da resposta: ${response?.status || 'undefined'}`
+                    );
+
                     this.resultado = response;
                     if (!this.resultado.status) {
                         this.resultado.status = 'AGUARDANDO';
+                        this.addDebugLog('🔄 Status definido como AGUARDANDO');
                     }
                     this.temRefeicaoPendente =
                         this.resultado.status === 'AGUARDANDO';
+
+                    this.addDebugLog(
+                        `🎯 temRefeicaoPendente: ${this.temRefeicaoPendente}`
+                    );
+                    this.addDebugLog(
+                        `📝 Número de alimentos na resposta: ${response?.alimentos?.length || 0}`
+                    );
 
                     this._snackBar.open(
                         'Análise da imagem concluída com sucesso! Agora você pode aceitar ou rejeitar.',
@@ -499,6 +572,24 @@ export class AdicionarRefeicaoComponent implements OnInit {
                     );
                 },
                 error: (error) => {
+                    this.addDebugLog('❌ ERRO na requisição HTTP');
+                    this.addDebugLog(
+                        `🚨 Erro tipo: ${error?.name || 'desconhecido'}`
+                    );
+                    this.addDebugLog(
+                        `📝 Erro mensagem: ${error?.message || 'sem mensagem'}`
+                    );
+                    this.addDebugLog(
+                        `🔢 Erro status: ${error?.status || 'sem status'}`
+                    );
+                    this.addDebugLog(`📄 Erro URL: ${error?.url || 'sem URL'}`);
+
+                    if (error?.error) {
+                        this.addDebugLog(
+                            `🔍 Erro detalhado: ${JSON.stringify(error.error).substring(0, 200)}...`
+                        );
+                    }
+
                     console.error('Erro ao analisar imagem:', error);
                     this._snackBar.open(
                         'Erro ao analisar a imagem. Tente novamente.' +
@@ -688,25 +779,65 @@ export class AdicionarRefeicaoComponent implements OnInit {
     }
 
     onDrop(event: DragEvent): void {
+        this.addDebugLog('📥 onDrop chamado (drag and drop)');
         event.preventDefault();
         event.stopPropagation();
         this.isDragOver = false;
 
         const files = event.dataTransfer?.files;
+        this.addDebugLog(`📂 DataTransfer files: ${files?.length || 0}`);
+
         if (files && files.length > 0) {
+            this.addDebugLog(
+                '✅ Arquivo encontrado no drop, chamando handleFileSelection'
+            );
             this.handleFileSelection(files[0]);
+        } else {
+            this.addDebugLog('❌ Nenhum arquivo no drop');
         }
     }
 
     onFileSelected(event: Event): void {
+        this.addDebugLog('📁 onFileSelected chamado');
         const input = event.target as HTMLInputElement;
+        this.addDebugLog(
+            `🔍 Input element: ${input ? 'encontrado' : 'não encontrado'}`
+        );
+        this.addDebugLog(`📂 Files length: ${input?.files?.length || 0}`);
+
         if (input.files && input.files.length > 0) {
+            this.addDebugLog(
+                '✅ Arquivo encontrado, chamando handleFileSelection'
+            );
             this.handleFileSelection(input.files[0]);
+        } else {
+            this.addDebugLog('❌ Nenhum arquivo selecionado no input');
         }
     }
 
     private handleFileSelection(file: File): void {
+        this.addDebugLog('🎯 handleFileSelection iniciado');
+        this.addDebugLog(
+            `📱 User Agent: ${navigator.userAgent.substring(0, 100)}...`
+        );
+
+        if (!file) {
+            this.addDebugLog('❌ Nenhum arquivo foi passado');
+            return;
+        }
+
+        this.addDebugLog(`📋 Detalhes do arquivo:`);
+        this.addDebugLog(`  • Nome: ${file.name}`);
+        this.addDebugLog(
+            `  • Tamanho: ${file.size} bytes (${(file.size / 1024 / 1024).toFixed(2)} MB)`
+        );
+        this.addDebugLog(`  • Tipo: ${file.type}`);
+        this.addDebugLog(
+            `  • Última modificação: ${new Date(file.lastModified).toLocaleString()}`
+        );
+
         if (!file.type.startsWith('image/')) {
+            this.addDebugLog(`❌ Tipo de arquivo inválido: ${file.type}`);
             this._snackBar.open(
                 'Por favor, selecione apenas arquivos de imagem.',
                 'Fechar',
@@ -719,6 +850,9 @@ export class AdicionarRefeicaoComponent implements OnInit {
         }
 
         if (file.size > 10 * 1024 * 1024) {
+            this.addDebugLog(
+                `❌ Arquivo muito grande: ${(file.size / 1024 / 1024).toFixed(2)} MB`
+            );
             this._snackBar.open('A imagem deve ter no máximo 10MB.', 'Fechar', {
                 duration: 3000,
                 panelClass: ['error-snackbar'],
@@ -726,12 +860,26 @@ export class AdicionarRefeicaoComponent implements OnInit {
             return;
         }
 
+        this.addDebugLog('✅ Validações passou, armazenando arquivo');
         this.selectedImage = file;
 
         const reader = new FileReader();
         reader.onload = (e) => {
+            this.addDebugLog('🖼️ FileReader.onload executado');
             this.imagePreview = e.target?.result as string;
+            this.addDebugLog(
+                `📊 Preview criado: ${this.imagePreview?.substring(0, 50)}...`
+            );
+            this.addDebugLog(
+                `🔢 Tamanho do preview: ${this.imagePreview?.length} caracteres`
+            );
         };
+
+        reader.onerror = (e) => {
+            this.addDebugLog(`❌ ERRO no FileReader: ${e}`);
+        };
+
+        this.addDebugLog('🔄 Iniciando FileReader.readAsDataURL');
         reader.readAsDataURL(file);
     }
 

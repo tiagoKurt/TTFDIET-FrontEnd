@@ -1,4 +1,39 @@
 <div class="flex flex-col w-full max-w-4xl mx-auto p-6 space-y-6">
+    <!-- Debug Visual para Mobile -->
+    <mat-card *ngIf="debugLogs.length > 0" class="p-4 bg-gray-50 dark:bg-gray-900 border-2 border-blue-200 dark:border-blue-700">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold text-blue-800 dark:text-blue-200 flex items-center">
+                <mat-icon class="mr-2">bug_report</mat-icon>
+                Debug Mobile ({{debugLogs.length}} logs)
+            </h3>
+            <div class="space-x-2">
+                <button mat-icon-button 
+                        (click)="showDebugLogs = !showDebugLogs"
+                        [attr.aria-label]="showDebugLogs ? 'Ocultar logs' : 'Mostrar logs'"
+                        class="text-blue-600 dark:text-blue-400">
+                    <mat-icon>{{showDebugLogs ? 'visibility_off' : 'visibility'}}</mat-icon>
+                </button>
+                <button mat-icon-button 
+                        (click)="clearDebugLogs()"
+                        aria-label="Limpar logs"
+                        class="text-red-600 dark:text-red-400">
+                    <mat-icon>clear_all</mat-icon>
+                </button>
+            </div>
+        </div>
+        
+        <div *ngIf="showDebugLogs" class="max-h-64 overflow-y-auto bg-black text-green-400 p-4 rounded font-mono text-sm space-y-1">
+            <div *ngFor="let log of debugLogs; trackBy: trackByIndex" 
+                 class="border-l-2 border-green-500 pl-2 py-1 break-all">
+                {{ log }}
+            </div>
+        </div>
+        
+        <div *ngIf="!showDebugLogs" class="text-center text-gray-600 dark:text-gray-400 text-sm py-2">
+            Clique no ícone do olho para ver os logs de debug
+        </div>
+    </mat-card>
+
     <!-- Cabeçalho -->
     <div class="text-center">
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Adicionar Refeição</h1>
