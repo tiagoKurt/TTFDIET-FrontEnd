@@ -36,7 +36,6 @@ import {
     RefeicaoResponse,
     TipoObjetivo,
     TipoRefeicao,
-    StatusRefeicao,
 } from '../refeicoes.types';
 
 @Component({
@@ -155,7 +154,10 @@ export class AdicionarRefeicaoComponent implements OnInit {
                     }
                 },
                 error: (error) => {
-                    console.error('Erro ao verificar refeições pendentes:', error);
+                    console.error(
+                        'Erro ao verificar refeições pendentes:',
+                        error
+                    );
                 },
             });
     }
@@ -172,7 +174,10 @@ export class AdicionarRefeicaoComponent implements OnInit {
                     }
                 },
                 error: (error) => {
-                    console.error('Erro ao carregar refeições pendentes:', error);
+                    console.error(
+                        'Erro ao carregar refeições pendentes:',
+                        error
+                    );
                 },
             });
     }
@@ -279,7 +284,8 @@ export class AdicionarRefeicaoComponent implements OnInit {
             ),
             refeicao: formValue.refeicao,
             preferencias: preferencias,
-            maximo_calorias_por_refeicao: formValue.maximo_calorias_por_refeicao,
+            maximo_calorias_por_refeicao:
+                formValue.maximo_calorias_por_refeicao,
         };
     }
 
@@ -311,7 +317,8 @@ export class AdicionarRefeicaoComponent implements OnInit {
                     if (!this.resultado.status) {
                         this.resultado.status = 'AGUARDANDO';
                     }
-                    this.temRefeicaoPendente = this.resultado.status === 'AGUARDANDO';
+                    this.temRefeicaoPendente =
+                        this.resultado.status === 'AGUARDANDO';
 
                     this._snackBar.open(
                         'Refeição gerada com sucesso! Agora você pode aceitar ou rejeitar.',
@@ -456,7 +463,8 @@ export class AdicionarRefeicaoComponent implements OnInit {
 
         const formData = new FormData();
         formData.append('imagem', this.selectedImage);
-
+        console.log('Enviando imagem para análise:', this.selectedImage);
+        console.log(formData);
         this._httpClient
             .post<RefeicaoResponse>(
                 'https://ttfdietbackend.tigasolutions.com.br/api/refeicoes/gerar-por-foto',
@@ -472,7 +480,8 @@ export class AdicionarRefeicaoComponent implements OnInit {
                     if (!this.resultado.status) {
                         this.resultado.status = 'AGUARDANDO';
                     }
-                    this.temRefeicaoPendente = this.resultado.status === 'AGUARDANDO';
+                    this.temRefeicaoPendente =
+                        this.resultado.status === 'AGUARDANDO';
 
                     this._snackBar.open(
                         'Análise da imagem concluída com sucesso! Agora você pode aceitar ou rejeitar.',
