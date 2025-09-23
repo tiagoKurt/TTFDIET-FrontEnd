@@ -463,8 +463,14 @@ export class AdicionarRefeicaoComponent implements OnInit {
 
         const formData = new FormData();
         formData.append('imagem', this.selectedImage);
-        console.log('Enviando imagem para análise:', this.selectedImage);
-        console.log(formData);
+        this._snackBar.open(
+            `Enviando imagem: ${this.selectedImage.name} (${(this.selectedImage.size / 1024 / 1024).toFixed(2)} MB)`,
+            'Fechar',
+            {
+                duration: 5000,
+                panelClass: ['info-snackbar'],
+            }
+        );
         this._httpClient
             .post<RefeicaoResponse>(
                 'https://ttfdietbackend.tigasolutions.com.br/api/refeicoes/gerar-por-foto',
@@ -495,7 +501,8 @@ export class AdicionarRefeicaoComponent implements OnInit {
                 error: (error) => {
                     console.error('Erro ao analisar imagem:', error);
                     this._snackBar.open(
-                        'Erro ao analisar a imagem. Tente novamente.' + error,
+                        'Erro ao analisar a imagem. Tente novamente.' +
+                            error.message,
                         'Fechar',
                         {
                             duration: 5000,
