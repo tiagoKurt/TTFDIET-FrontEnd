@@ -495,7 +495,7 @@ export class AdicionarRefeicaoComponent implements OnInit {
                 error: (error) => {
                     console.error('Erro ao analisar imagem:', error);
                     this._snackBar.open(
-                        'Erro ao analisar a imagem. Tente novamente.',
+                        'Erro ao analisar a imagem. Tente novamente.' + error,
                         'Fechar',
                         {
                             duration: 5000,
