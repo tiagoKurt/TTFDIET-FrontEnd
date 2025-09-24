@@ -479,7 +479,7 @@ export class AdicionarRefeicaoComponent implements OnInit {
             }
         );
 
-        const base64Image = this._toBase64(this.selectedImage);
+        const base64Image = await this._toBase64(this.selectedImage);
         this._snackBar.open(`Enviando imagem: ${base64Image}`, 'Fechar', {
             duration: 5000,
             panelClass: ['info-snackbar'],
