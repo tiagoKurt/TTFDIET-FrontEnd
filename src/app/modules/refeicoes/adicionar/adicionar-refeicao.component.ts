@@ -444,7 +444,14 @@ export class AdicionarRefeicaoComponent implements OnInit {
                 },
             });
     }
-
+    _toBase64(file: File): Promise<string> {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = (error) => reject(error);
+        });
+    }
     novaRefeicao(): void {
         this.resultado = null;
         this.temRefeicaoPendente = false;
@@ -453,7 +460,7 @@ export class AdicionarRefeicaoComponent implements OnInit {
         this.verificarRefeicoesPendentes();
     }
 
-    analisarImagem(): void {
+    async analisarImagem(): Promise<void> {
         if (!this.selectedImage) {
             return;
         }
@@ -471,6 +478,12 @@ export class AdicionarRefeicaoComponent implements OnInit {
                 panelClass: ['info-snackbar'],
             }
         );
+
+        const base64Image = this._toBase64(this.selectedImage);
+        this._snackBar.open(`Enviando imagem: ${base64Image}`, 'Fechar', {
+            duration: 5000,
+            panelClass: ['info-snackbar'],
+        });
         this._httpClient
             .post<RefeicaoResponse>(
                 'https://ttfdietbackend.tigasolutions.com.br/api/refeicoes/gerar-por-foto',
