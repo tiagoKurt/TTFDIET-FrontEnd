@@ -470,20 +470,7 @@ export class AdicionarRefeicaoComponent implements OnInit {
 
         const formData = new FormData();
         formData.append('imagem', this.selectedImage);
-        this._snackBar.open(
-            `Enviando imagem: ${this.selectedImage.name} (${(this.selectedImage.size / 1024 / 1024).toFixed(2)} MB)`,
-            'Fechar',
-            {
-                duration: 5000,
-                panelClass: ['info-snackbar'],
-            }
-        );
 
-        const base64Image = await this._toBase64(this.selectedImage);
-        this._snackBar.open(`Enviando imagem: ${base64Image}`, 'Fechar', {
-            duration: 5000,
-            panelClass: ['info-snackbar'],
-        });
         this._httpClient
             .post<RefeicaoResponse>(
                 'https://ttfdietbackend.tigasolutions.com.br/api/refeicoes/gerar-por-foto',
