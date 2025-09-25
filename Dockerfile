@@ -1,8 +1,7 @@
 # Multi-stage build para produção
 
 # Stage 1: Build da aplicação
-FROM node:18-alpine AS builder
-
+FROM node:22-alpine AS builder
 WORKDIR /app
 
 RUN npm install -g @angular/cli
@@ -13,14 +12,17 @@ RUN npm install --legacy-peer-deps
 
 COPY . .
 
-# Build para produção (gera arquivos otimizados)
+# Build para produção
 RUN ng build --configuration=production
+
+# Debug: listar conteúdo da pasta dist para ver o nome correto
+RUN ls -la dist/
 
 # Stage 2: Servir com nginx (otimizado para uploads)
 FROM nginx:alpine
 
-# Copiar arquivos buildados
-COPY --from=builder /app/dist/ttfdiet-frontend /usr/share/nginx/html
+# Copiar arquivos buildados (usando wildcard para pegar qualquer nome)
+COPY --from=builder /app/dist/* /usr/share/nginx/html/
 
 # Configuração nginx para uploads pesados
 COPY nginx.conf /etc/nginx/nginx.conf
