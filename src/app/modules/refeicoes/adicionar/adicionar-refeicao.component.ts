@@ -155,6 +155,109 @@ export class AdicionarRefeicaoComponent implements OnInit {
         });
     }
 
+    private tentarUploadComRetry(requestData: FormData, requestOptions: any, isMobile: boolean, tentativa: number = 1): void {
+        const maxTentativas = isMobile ? 3 : 1;
+        
+        console.log(`🔥 DEBUG: Tentativa ${tentativa}/${maxTentativas} de upload`);
+        
+        if (isMobile && tentativa > 1) {
+            this._snackBar.open(
+                `🔄 Tentativa ${tentativa}/${maxTentativas}...`,
+                '',
+                { duration: 2000, panelClass: ['info-snackbar'] }
+            );
+        }
+
+        this._httpClient
+            .post<RefeicaoResponse>(
+                'https://ttfdietbackend.tigasolutions.com.br/api/refeicoes/gerar-por-foto',
+                requestData,
+                { 
+                    ...requestOptions, 
+                    observe: 'body' as const,
+                    // Headers adicionais para mobile
+                    headers: {
+                        ...requestOptions.headers,
+                        'Accept': 'application/json',
+                        'Cache-Control': 'no-cache'
+                    }
+                }
+            )
+            .pipe(
+                finalize(() => {
+                    if (tentativa >= maxTentativas) {
+                        this.loading = false;
+                    }
+                }),
+                takeUntilDestroyed(this._destroyRef)
+            )
+            .subscribe({
+                next: (response) => {
+                    console.log('🔥 DEBUG: Upload bem-sucedido na tentativa', tentativa);
+                    this.loading = false;
+                    this.resultado = response as unknown as RefeicaoResponse;
+                    
+                    if (!this.resultado.status) {
+                        this.resultado.status = 'AGUARDANDO';
+                    }
+                    this.temRefeicaoPendente = this.resultado.status === 'AGUARDANDO';
+
+                    this._snackBar.open(
+                        '✅ Análise da imagem concluída com sucesso!',
+                        'Fechar',
+                        {
+                            duration: 4000,
+                            panelClass: ['success-snackbar'],
+                        }
+                    );
+                },
+                error: (error) => {
+                    console.error(`🔥 DEBUG: Erro na tentativa ${tentativa}:`, error);
+                    
+                    // Se é erro 0 (conectividade) e ainda tem tentativas
+                    if (error.status === 0 && tentativa < maxTentativas) {
+                        console.log('🔥 DEBUG: Erro de conectividade, tentando novamente...');
+                        
+                        // Aguarda um pouco antes da próxima tentativa
+                        setTimeout(() => {
+                            this.tentarUploadComRetry(requestData, requestOptions, isMobile, tentativa + 1);
+                        }, 2000 * tentativa); // Delay crescente: 2s, 4s, 6s
+                        
+                    } else {
+                        // Esgotou tentativas ou outro tipo de erro
+                        this.loading = false;
+                        
+                        let mensagemErro = 'Erro ao analisar a imagem.';
+                        
+                        if (error.status === 0) {
+                            mensagemErro = '📡 Problema de conexão. Verifique sua internet e tente novamente.';
+                        } else if (error.status === 413) {
+                            mensagemErro = '📁 Arquivo muito grande. Tente uma imagem menor.';
+                        } else if (error.status >= 500) {
+                            mensagemErro = '🔧 Problema no servidor. Tente novamente em alguns minutos.';
+                        }
+                        
+                        console.error('🔥 DEBUG: Erro final após todas as tentativas:', {
+                            status: error.status,
+                            statusText: error.statusText,
+                            message: error.message,
+                            isMobile: isMobile,
+                            tentativas: tentativa
+                        });
+                        
+                        this._snackBar.open(
+                            mensagemErro,
+                            'Fechar',
+                            {
+                                duration: 6000,
+                                panelClass: ['error-snackbar'],
+                            }
+                        );
+                    }
+                },
+            });
+    }
+
     ngOnInit(): void {
         this.initializeForm();
         this.loadUserProfile();
@@ -601,58 +704,8 @@ export class AdicionarRefeicaoComponent implements OnInit {
                 requestData.append('imagem', this.selectedImage);
             }
 
-            this._httpClient
-                .post<RefeicaoResponse>(
-                    'https://ttfdietbackend.tigasolutions.com.br/api/refeicoes/gerar-por-foto',
-                    requestData,
-                    { ...requestOptions, observe: 'body' as const }
-                )
-                .pipe(
-                    finalize(() => (this.loading = false)),
-                    takeUntilDestroyed(this._destroyRef)
-                )
-                .subscribe({
-                    next: (response) => {
-                        console.log('🔥 DEBUG: Upload bem-sucedido!', response);
-                        this.resultado = response as unknown as RefeicaoResponse;
-                        if (!this.resultado.status) {
-                            this.resultado.status = 'AGUARDANDO';
-                        }
-                        this.temRefeicaoPendente =
-                            this.resultado.status === 'AGUARDANDO';
-
-                        this._snackBar.open(
-                            'Análise da imagem concluída com sucesso! Agora você pode aceitar ou rejeitar.',
-                            'Fechar',
-                            {
-                                duration: 4000,
-                                panelClass: ['success-snackbar'],
-                            }
-                        );
-                    },
-                    error: (error) => {
-                        console.error('🔥 DEBUG: Erro ao analisar imagem:', error);
-                        console.error('🔥 DEBUG: Detalhes do erro:', {
-                            status: error.status,
-                            statusText: error.statusText,
-                            message: error.message,
-                            url: error.url,
-                            isMobile: isMobile,
-                            fileSize: this.selectedImage?.size,
-                            fileType: this.selectedImage?.type
-                        });
-                        
-                        this._snackBar.open(
-                            'Erro ao analisar a imagem. Tente novamente. ' +
-                                (error.message || 'Erro desconhecido'),
-                            'Fechar',
-                            {
-                                duration: 5000,
-                                panelClass: ['error-snackbar'],
-                            }
-                        );
-                    },
-                });
+            // Tenta upload com retry para mobile
+            this.tentarUploadComRetry(requestData, requestOptions, isMobile);
         } catch (error) {
             console.error('🔥 DEBUG: Erro ao processar arquivo:', error);
             this.loading = false;
