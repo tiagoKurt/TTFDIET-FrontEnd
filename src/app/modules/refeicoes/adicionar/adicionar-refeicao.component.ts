@@ -521,7 +521,7 @@ export class AdicionarRefeicaoComponent implements OnInit {
                     takeUntilDestroyed(this._destroyRef)
                 )
                 .subscribe({
-                    next: (response) => {
+                    next: (response: RefeicaoResponse) => {
                         console.log('🔥 DEBUG: Upload bem-sucedido!', response);
                         this.resultado = response;
                         if (!this.resultado.status) {
