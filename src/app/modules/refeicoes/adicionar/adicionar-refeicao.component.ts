@@ -102,6 +102,10 @@ export class AdicionarRefeicaoComponent implements OnInit {
 
     preferenciasPadrao: string[] = [];
 
+    private isMobileDevice(): boolean {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+
     ngOnInit(): void {
         this.initializeForm();
         this.loadUserProfile();
@@ -468,49 +472,108 @@ export class AdicionarRefeicaoComponent implements OnInit {
         this.loading = true;
         this.resultado = null;
 
-        const formData = new FormData();
-        formData.append('imagem', this.selectedImage);
+        try {
+            // Detecta se é dispositivo móvel
+            const isMobile = this.isMobileDevice();
+            console.log('🔥 DEBUG: Dispositivo detectado:', isMobile ? 'MOBILE' : 'DESKTOP');
+            console.log('🔥 DEBUG: User Agent:', navigator.userAgent);
 
-        this._httpClient
-            .post<RefeicaoResponse>(
-                'https://ttfdietbackend.tigasolutions.com.br/api/refeicoes/gerar-por-foto',
-                formData
-            )
-            .pipe(
-                finalize(() => (this.loading = false)),
-                takeUntilDestroyed(this._destroyRef)
-            )
-            .subscribe({
-                next: (response) => {
-                    this.resultado = response;
-                    if (!this.resultado.status) {
-                        this.resultado.status = 'AGUARDANDO';
-                    }
-                    this.temRefeicaoPendente =
-                        this.resultado.status === 'AGUARDANDO';
+            let requestData: any;
+            let requestOptions: any = {};
 
-                    this._snackBar.open(
-                        'Análise da imagem concluída com sucesso! Agora você pode aceitar ou rejeitar.',
-                        'Fechar',
-                        {
-                            duration: 4000,
-                            panelClass: ['success-snackbar'],
+            if (isMobile) {
+                // Para dispositivos móveis, tenta uma abordagem diferente
+                console.log('🔥 DEBUG MOBILE: Usando estratégia móvel - convertendo para Blob');
+                
+                // Lê o arquivo como ArrayBuffer e recria como Blob
+                const arrayBuffer = await this.selectedImage.arrayBuffer();
+                const blob = new Blob([arrayBuffer], { type: this.selectedImage.type });
+                
+                requestData = new FormData();
+                requestData.append('imagem', blob, this.selectedImage.name);
+                
+                // Adiciona headers específicos para mobile
+                requestOptions.headers = {
+                    'X-Mobile-Device': 'true'
+                };
+                
+                console.log('🔥 DEBUG MOBILE: Blob criado', {
+                    originalSize: this.selectedImage.size,
+                    blobSize: blob.size,
+                    type: blob.type,
+                    name: this.selectedImage.name
+                });
+            } else {
+                // Para desktop, usa FormData tradicional
+                console.log('🔥 DEBUG DESKTOP: Usando FormData tradicional');
+                requestData = new FormData();
+                requestData.append('imagem', this.selectedImage);
+            }
+
+            this._httpClient
+                .post<RefeicaoResponse>(
+                    'https://ttfdietbackend.tigasolutions.com.br/api/refeicoes/gerar-por-foto',
+                    requestData,
+                    requestOptions
+                )
+                .pipe(
+                    finalize(() => (this.loading = false)),
+                    takeUntilDestroyed(this._destroyRef)
+                )
+                .subscribe({
+                    next: (response) => {
+                        console.log('🔥 DEBUG: Upload bem-sucedido!', response);
+                        this.resultado = response;
+                        if (!this.resultado.status) {
+                            this.resultado.status = 'AGUARDANDO';
                         }
-                    );
-                },
-                error: (error) => {
-                    console.error('Erro ao analisar imagem:', error);
-                    this._snackBar.open(
-                        'Erro ao analisar a imagem. Tente novamente.' +
-                            error.message,
-                        'Fechar',
-                        {
-                            duration: 5000,
-                            panelClass: ['error-snackbar'],
-                        }
-                    );
-                },
-            });
+                        this.temRefeicaoPendente =
+                            this.resultado.status === 'AGUARDANDO';
+
+                        this._snackBar.open(
+                            'Análise da imagem concluída com sucesso! Agora você pode aceitar ou rejeitar.',
+                            'Fechar',
+                            {
+                                duration: 4000,
+                                panelClass: ['success-snackbar'],
+                            }
+                        );
+                    },
+                    error: (error) => {
+                        console.error('🔥 DEBUG: Erro ao analisar imagem:', error);
+                        console.error('🔥 DEBUG: Detalhes do erro:', {
+                            status: error.status,
+                            statusText: error.statusText,
+                            message: error.message,
+                            url: error.url,
+                            isMobile: isMobile,
+                            fileSize: this.selectedImage?.size,
+                            fileType: this.selectedImage?.type
+                        });
+                        
+                        this._snackBar.open(
+                            'Erro ao analisar a imagem. Tente novamente. ' +
+                                (error.message || 'Erro desconhecido'),
+                            'Fechar',
+                            {
+                                duration: 5000,
+                                panelClass: ['error-snackbar'],
+                            }
+                        );
+                    },
+                });
+        } catch (error) {
+            console.error('🔥 DEBUG: Erro ao processar arquivo:', error);
+            this.loading = false;
+            this._snackBar.open(
+                'Erro ao processar o arquivo. Tente novamente.',
+                'Fechar',
+                {
+                    duration: 5000,
+                    panelClass: ['error-snackbar'],
+                }
+            );
+        }
     }
 
     editarAlimento(alimento: AlimentoResponse): void {
