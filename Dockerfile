@@ -2,6 +2,7 @@
 
 # Stage 1: Build da aplicação
 FROM node:22-alpine AS builder
+
 WORKDIR /app
 
 RUN npm install -g @angular/cli
@@ -20,6 +21,10 @@ RUN ls -la dist/
 
 # Stage 2: Servir com nginx (otimizado para uploads)
 FROM nginx:alpine
+
+# Remover configurações padrão do nginx
+RUN rm -rf /usr/share/nginx/html/*
+RUN rm -f /etc/nginx/conf.d/default.conf
 
 # Copiar arquivos buildados (usando wildcard para pegar qualquer nome)
 COPY --from=builder /app/dist/* /usr/share/nginx/html/
