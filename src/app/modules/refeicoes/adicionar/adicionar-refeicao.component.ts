@@ -102,162 +102,6 @@ export class AdicionarRefeicaoComponent implements OnInit {
 
     preferenciasPadrao: string[] = [];
 
-    private isMobileDevice(): boolean {
-        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    }
-
-    private compressImage(file: File, quality: number = 0.7): Promise<File> {
-        return new Promise((resolve, reject) => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            const img = new Image();
-
-            img.onload = () => {
-                // Redimensiona para máximo de 1200px (mais adequado para mobile)
-                const maxSize = 1200;
-                let { width, height } = img;
-                
-                if (width > height) {
-                    if (width > maxSize) {
-                        height = (height * maxSize) / width;
-                        width = maxSize;
-                    }
-                } else {
-                    if (height > maxSize) {
-                        width = (width * maxSize) / height;
-                        height = maxSize;
-                    }
-                }
-
-                canvas.width = width;
-                canvas.height = height;
-                ctx?.drawImage(img, 0, 0, width, height);
-
-                canvas.toBlob(
-                    (blob) => {
-                        if (blob) {
-                            resolve(new File([blob], file.name, {
-                                type: file.type,
-                                lastModified: Date.now()
-                            }));
-                        } else {
-                            // Fallback: retorna arquivo original se compressão falhar
-                            resolve(file);
-                        }
-                    },
-                    file.type,
-                    quality
-                );
-            };
-
-            img.onerror = () => resolve(file); // Fallback em caso de erro
-            img.src = URL.createObjectURL(file);
-        });
-    }
-
-    private tentarUploadComRetry(requestData: FormData, requestOptions: any, isMobile: boolean, tentativa: number = 1): void {
-        const maxTentativas = isMobile ? 3 : 1;
-        
-        console.log(`🔥 DEBUG: Tentativa ${tentativa}/${maxTentativas} de upload`);
-        
-        if (isMobile && tentativa > 1) {
-            this._snackBar.open(
-                `🔄 Tentativa ${tentativa}/${maxTentativas}...`,
-                '',
-                { duration: 2000, panelClass: ['info-snackbar'] }
-            );
-        }
-
-        this._httpClient
-            .post<RefeicaoResponse>(
-                'https://ttfdietbackend.tigasolutions.com.br/api/refeicoes/gerar-por-foto',
-                requestData,
-                { 
-                    ...requestOptions, 
-                    observe: 'body' as const,
-                    // Headers adicionais para mobile
-                    headers: {
-                        ...requestOptions.headers,
-                        'Accept': 'application/json',
-                        'Cache-Control': 'no-cache'
-                    }
-                }
-            )
-            .pipe(
-                finalize(() => {
-                    if (tentativa >= maxTentativas) {
-                        this.loading = false;
-                    }
-                }),
-                takeUntilDestroyed(this._destroyRef)
-            )
-            .subscribe({
-                next: (response) => {
-                    console.log('🔥 DEBUG: Upload bem-sucedido na tentativa', tentativa);
-                    this.loading = false;
-                    this.resultado = response as unknown as RefeicaoResponse;
-                    
-                    if (!this.resultado.status) {
-                        this.resultado.status = 'AGUARDANDO';
-                    }
-                    this.temRefeicaoPendente = this.resultado.status === 'AGUARDANDO';
-
-                    this._snackBar.open(
-                        '✅ Análise da imagem concluída com sucesso!',
-                        'Fechar',
-                        {
-                            duration: 4000,
-                            panelClass: ['success-snackbar'],
-                        }
-                    );
-                },
-                error: (error) => {
-                    console.error(`🔥 DEBUG: Erro na tentativa ${tentativa}:`, error);
-                    
-                    // Se é erro 0 (conectividade) e ainda tem tentativas
-                    if (error.status === 0 && tentativa < maxTentativas) {
-                        console.log('🔥 DEBUG: Erro de conectividade, tentando novamente...');
-                        
-                        // Aguarda um pouco antes da próxima tentativa
-                        setTimeout(() => {
-                            this.tentarUploadComRetry(requestData, requestOptions, isMobile, tentativa + 1);
-                        }, 2000 * tentativa); // Delay crescente: 2s, 4s, 6s
-                        
-                    } else {
-                        // Esgotou tentativas ou outro tipo de erro
-                        this.loading = false;
-                        
-                        let mensagemErro = 'Erro ao analisar a imagem.';
-                        
-                        if (error.status === 0) {
-                            mensagemErro = '📡 Problema de conexão. Verifique sua internet e tente novamente.';
-                        } else if (error.status === 413) {
-                            mensagemErro = '📁 Arquivo muito grande. Tente uma imagem menor.';
-                        } else if (error.status >= 500) {
-                            mensagemErro = '🔧 Problema no servidor. Tente novamente em alguns minutos.';
-                        }
-                        
-                        console.error('🔥 DEBUG: Erro final após todas as tentativas:', {
-                            status: error.status,
-                            statusText: error.statusText,
-                            message: error.message,
-                            isMobile: isMobile,
-                            tentativas: tentativa
-                        });
-                        
-                        this._snackBar.open(
-                            mensagemErro,
-                            'Fechar',
-                            {
-                                duration: 6000,
-                                panelClass: ['error-snackbar'],
-                            }
-                        );
-                    }
-                },
-            });
-    }
-
     ngOnInit(): void {
         this.initializeForm();
         this.loadUserProfile();
@@ -624,100 +468,49 @@ export class AdicionarRefeicaoComponent implements OnInit {
         this.loading = true;
         this.resultado = null;
 
-        try {
-            // Detecta se é dispositivo móvel
-            const isMobile = this.isMobileDevice();
-            console.log('🔥 DEBUG: Dispositivo detectado:', isMobile ? 'MOBILE' : 'DESKTOP');
-            console.log('🔥 DEBUG: User Agent:', navigator.userAgent);
-            console.log('🔥 DEBUG: Tamanho do arquivo:', this.selectedImage.size, 'bytes');
+        const formData = new FormData();
+        formData.append('imagem', this.selectedImage);
 
-            let requestData: any;
-            let requestOptions: any = {
-                // Timeout maior para arquivos grandes
-                timeout: 120000 // 2 minutos
-            };
+        this._httpClient
+            .post<RefeicaoResponse>(
+                'https://ttfdietbackend.tigasolutions.com.br/api/refeicoes/gerar-por-foto',
+                formData
+            )
+            .pipe(
+                finalize(() => (this.loading = false)),
+                takeUntilDestroyed(this._destroyRef)
+            )
+            .subscribe({
+                next: (response) => {
+                    this.resultado = response;
+                    if (!this.resultado.status) {
+                        this.resultado.status = 'AGUARDANDO';
+                    }
+                    this.temRefeicaoPendente =
+                        this.resultado.status === 'AGUARDANDO';
 
-            if (isMobile) {
-                // Para dispositivos móveis - estratégia otimizada
-                console.log('🔥 DEBUG MOBILE: Iniciando processamento móvel...');
-                
-                // Mostra mensagem visual no mobile
-                this._snackBar.open(
-                    `📱 MOBILE: Processando imagem ${(this.selectedImage.size / 1024 / 1024).toFixed(1)}MB...`,
-                    '',
-                    { duration: 3000, panelClass: ['info-snackbar'] }
-                );
-                
-                // Se arquivo for muito grande (>3MB), comprime primeiro
-                if (this.selectedImage.size > 3 * 1024 * 1024) {
-                    console.log('🔥 DEBUG MOBILE: Arquivo grande, comprimindo...');
-                    
                     this._snackBar.open(
-                        '🔄 Comprimindo imagem para upload...',
-                        '',
-                        { duration: 2000, panelClass: ['info-snackbar'] }
+                        'Análise da imagem concluída com sucesso! Agora você pode aceitar ou rejeitar.',
+                        'Fechar',
+                        {
+                            duration: 4000,
+                            panelClass: ['success-snackbar'],
+                        }
                     );
-                    
-                    const compressedFile = await this.compressImage(this.selectedImage);
-                    console.log('🔥 DEBUG MOBILE: Compressão concluída', {
-                        originalSize: this.selectedImage.size,
-                        compressedSize: compressedFile.size,
-                        reduction: ((this.selectedImage.size - compressedFile.size) / this.selectedImage.size * 100).toFixed(1) + '%'
-                    });
-                    
+                },
+                error: (error) => {
+                    console.error('Erro ao analisar imagem:', error);
                     this._snackBar.open(
-                        `✅ Comprimido: ${(this.selectedImage.size / 1024 / 1024).toFixed(1)}MB → ${(compressedFile.size / 1024 / 1024).toFixed(1)}MB`,
-                        '',
-                        { duration: 2000, panelClass: ['success-snackbar'] }
+                        'Erro ao analisar a imagem. Tente novamente.' +
+                            error.message,
+                        'Fechar',
+                        {
+                            duration: 5000,
+                            panelClass: ['error-snackbar'],
+                        }
                     );
-                    
-                    requestData = new FormData();
-                    requestData.append('imagem', compressedFile, this.selectedImage.name);
-                } else {
-                    // Para arquivos menores, usa o método ArrayBuffer/Blob
-                    console.log('🔥 DEBUG MOBILE: Arquivo pequeno, usando ArrayBuffer/Blob');
-                    
-                    this._snackBar.open(
-                        '📤 Preparando upload otimizado...',
-                        '',
-                        { duration: 1500, panelClass: ['info-snackbar'] }
-                    );
-                    
-                    const arrayBuffer = await this.selectedImage.arrayBuffer();
-                    const blob = new Blob([arrayBuffer], { type: this.selectedImage.type });
-                    
-                    requestData = new FormData();
-                    requestData.append('imagem', blob, this.selectedImage.name);
-                }
-                
-                // Headers específicos para mobile
-                requestOptions.headers = {
-                    'X-Mobile-Device': 'true',
-                    'X-File-Size': this.selectedImage.size.toString()
-                };
-                
-                console.log('🔥 DEBUG MOBILE: FormData preparado para envio');
-            } else {
-                // Para desktop, usa FormData tradicional
-                console.log('🔥 DEBUG DESKTOP: Usando FormData tradicional');
-                requestData = new FormData();
-                requestData.append('imagem', this.selectedImage);
-            }
-
-            // Tenta upload com retry para mobile
-            this.tentarUploadComRetry(requestData, requestOptions, isMobile);
-        } catch (error) {
-            console.error('🔥 DEBUG: Erro ao processar arquivo:', error);
-            this.loading = false;
-            this._snackBar.open(
-                'Erro ao processar o arquivo. Tente novamente.',
-                'Fechar',
-                {
-                    duration: 5000,
-                    panelClass: ['error-snackbar'],
-                }
-            );
-        }
+                },
+            });
     }
 
     editarAlimento(alimento: AlimentoResponse): void {
