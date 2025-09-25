@@ -106,6 +106,55 @@ export class AdicionarRefeicaoComponent implements OnInit {
         return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     }
 
+    private compressImage(file: File, quality: number = 0.7): Promise<File> {
+        return new Promise((resolve, reject) => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+
+            img.onload = () => {
+                // Redimensiona para máximo de 1200px (mais adequado para mobile)
+                const maxSize = 1200;
+                let { width, height } = img;
+                
+                if (width > height) {
+                    if (width > maxSize) {
+                        height = (height * maxSize) / width;
+                        width = maxSize;
+                    }
+                } else {
+                    if (height > maxSize) {
+                        width = (width * maxSize) / height;
+                        height = maxSize;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                ctx?.drawImage(img, 0, 0, width, height);
+
+                canvas.toBlob(
+                    (blob) => {
+                        if (blob) {
+                            resolve(new File([blob], file.name, {
+                                type: file.type,
+                                lastModified: Date.now()
+                            }));
+                        } else {
+                            // Fallback: retorna arquivo original se compressão falhar
+                            resolve(file);
+                        }
+                    },
+                    file.type,
+                    quality
+                );
+            };
+
+            img.onerror = () => resolve(file); // Fallback em caso de erro
+            img.src = URL.createObjectURL(file);
+        });
+    }
+
     ngOnInit(): void {
         this.initializeForm();
         this.loadUserProfile();
@@ -477,32 +526,74 @@ export class AdicionarRefeicaoComponent implements OnInit {
             const isMobile = this.isMobileDevice();
             console.log('🔥 DEBUG: Dispositivo detectado:', isMobile ? 'MOBILE' : 'DESKTOP');
             console.log('🔥 DEBUG: User Agent:', navigator.userAgent);
+            console.log('🔥 DEBUG: Tamanho do arquivo:', this.selectedImage.size, 'bytes');
 
             let requestData: any;
-            let requestOptions: any = {};
+            let requestOptions: any = {
+                // Timeout maior para arquivos grandes
+                timeout: 120000 // 2 minutos
+            };
 
             if (isMobile) {
-                // Para dispositivos móveis, tenta uma abordagem diferente
-                console.log('🔥 DEBUG MOBILE: Usando estratégia móvel - convertendo para Blob');
+                // Para dispositivos móveis - estratégia otimizada
+                console.log('🔥 DEBUG MOBILE: Iniciando processamento móvel...');
                 
-                // Lê o arquivo como ArrayBuffer e recria como Blob
-                const arrayBuffer = await this.selectedImage.arrayBuffer();
-                const blob = new Blob([arrayBuffer], { type: this.selectedImage.type });
+                // Mostra mensagem visual no mobile
+                this._snackBar.open(
+                    `📱 MOBILE: Processando imagem ${(this.selectedImage.size / 1024 / 1024).toFixed(1)}MB...`,
+                    '',
+                    { duration: 3000, panelClass: ['info-snackbar'] }
+                );
                 
-                requestData = new FormData();
-                requestData.append('imagem', blob, this.selectedImage.name);
+                // Se arquivo for muito grande (>3MB), comprime primeiro
+                if (this.selectedImage.size > 3 * 1024 * 1024) {
+                    console.log('🔥 DEBUG MOBILE: Arquivo grande, comprimindo...');
+                    
+                    this._snackBar.open(
+                        '🔄 Comprimindo imagem para upload...',
+                        '',
+                        { duration: 2000, panelClass: ['info-snackbar'] }
+                    );
+                    
+                    const compressedFile = await this.compressImage(this.selectedImage);
+                    console.log('🔥 DEBUG MOBILE: Compressão concluída', {
+                        originalSize: this.selectedImage.size,
+                        compressedSize: compressedFile.size,
+                        reduction: ((this.selectedImage.size - compressedFile.size) / this.selectedImage.size * 100).toFixed(1) + '%'
+                    });
+                    
+                    this._snackBar.open(
+                        `✅ Comprimido: ${(this.selectedImage.size / 1024 / 1024).toFixed(1)}MB → ${(compressedFile.size / 1024 / 1024).toFixed(1)}MB`,
+                        '',
+                        { duration: 2000, panelClass: ['success-snackbar'] }
+                    );
+                    
+                    requestData = new FormData();
+                    requestData.append('imagem', compressedFile, this.selectedImage.name);
+                } else {
+                    // Para arquivos menores, usa o método ArrayBuffer/Blob
+                    console.log('🔥 DEBUG MOBILE: Arquivo pequeno, usando ArrayBuffer/Blob');
+                    
+                    this._snackBar.open(
+                        '📤 Preparando upload otimizado...',
+                        '',
+                        { duration: 1500, panelClass: ['info-snackbar'] }
+                    );
+                    
+                    const arrayBuffer = await this.selectedImage.arrayBuffer();
+                    const blob = new Blob([arrayBuffer], { type: this.selectedImage.type });
+                    
+                    requestData = new FormData();
+                    requestData.append('imagem', blob, this.selectedImage.name);
+                }
                 
-                // Adiciona headers específicos para mobile
+                // Headers específicos para mobile
                 requestOptions.headers = {
-                    'X-Mobile-Device': 'true'
+                    'X-Mobile-Device': 'true',
+                    'X-File-Size': this.selectedImage.size.toString()
                 };
                 
-                console.log('🔥 DEBUG MOBILE: Blob criado', {
-                    originalSize: this.selectedImage.size,
-                    blobSize: blob.size,
-                    type: blob.type,
-                    name: this.selectedImage.name
-                });
+                console.log('🔥 DEBUG MOBILE: FormData preparado para envio');
             } else {
                 // Para desktop, usa FormData tradicional
                 console.log('🔥 DEBUG DESKTOP: Usando FormData tradicional');
