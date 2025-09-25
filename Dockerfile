@@ -26,8 +26,8 @@ FROM nginx:alpine
 RUN rm -rf /usr/share/nginx/html/*
 RUN rm -f /etc/nginx/conf.d/default.conf
 
-# Copiar arquivos buildados (usando wildcard para pegar qualquer nome)
-COPY --from=builder /app/dist/* /usr/share/nginx/html/
+# Copiar arquivos buildados (Angular 17+ usa subpasta browser)
+COPY --from=builder /app/dist/*/browser/ /usr/share/nginx/html/
 
 # Configuração nginx para uploads pesados
 COPY nginx.conf /etc/nginx/nginx.conf
