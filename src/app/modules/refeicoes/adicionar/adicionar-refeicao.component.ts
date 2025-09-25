@@ -514,16 +514,16 @@ export class AdicionarRefeicaoComponent implements OnInit {
                 .post<RefeicaoResponse>(
                     'https://ttfdietbackend.tigasolutions.com.br/api/refeicoes/gerar-por-foto',
                     requestData,
-                    requestOptions
+                    { ...requestOptions, observe: 'body' as const }
                 )
                 .pipe(
                     finalize(() => (this.loading = false)),
                     takeUntilDestroyed(this._destroyRef)
                 )
                 .subscribe({
-                    next: (response: RefeicaoResponse) => {
+                    next: (response) => {
                         console.log('🔥 DEBUG: Upload bem-sucedido!', response);
-                        this.resultado = response;
+                        this.resultado = response as unknown as RefeicaoResponse;
                         if (!this.resultado.status) {
                             this.resultado.status = 'AGUARDANDO';
                         }
